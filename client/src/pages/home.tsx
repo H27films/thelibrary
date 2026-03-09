@@ -56,12 +56,12 @@ export default function Home() {
   };
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col md:flex-row bg-white text-black selection:bg-black/10">
+    <div className="h-screen w-screen overflow-hidden flex flex-col md:flex-row bg-background text-black selection:bg-black/10">
       
       {/* LEFT PANE - Navigation Rail */}
-      <nav className="w-full md:w-1/3 lg:w-[450px] flex flex-col p-8 md:p-12 lg:p-16 border-b md:border-b-0 md:border-r border-black/10 z-10 shrink-0">
+      <nav className="w-full md:w-1/3 lg:w-[450px] flex flex-col p-8 md:p-12 lg:p-16 border-b md:border-b-0 md:border-r border-black/5 z-10 shrink-0">
         
-        <div className="flex justify-between items-start mb-16">
+        <div className="flex justify-between items-start mb-12">
           <h1 className="text-sm font-bold tracking-widest uppercase font-sans">
             THE LIBRARY
           </h1>
@@ -70,18 +70,18 @@ export default function Home() {
           </button>
         </div>
 
-        <div className="w-full h-[1px] bg-black/10 mb-16" />
+        <div className="w-full h-[1px] bg-black/5 mb-12" />
 
         {/* Categories */}
-        <div className="flex-1 flex flex-col gap-4 md:gap-6 overflow-y-auto hide-scrollbar">
+        <div className="flex-1 flex flex-col gap-2 md:gap-3 overflow-y-auto hide-scrollbar pt-12">
           {CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat;
             return (
               <button
                 key={cat}
                 onClick={() => setActiveCategory(cat)}
-                className={`text-left text-4xl md:text-5xl lg:text-6xl font-sans font-bold tracking-tight transition-all duration-300
-                  ${isActive ? 'text-black opacity-100' : 'text-black opacity-20 hover:opacity-40'}
+                className={`text-left text-4xl md:text-5xl lg:text-6xl font-sans font-light tracking-tighter transition-all duration-300
+                  ${isActive ? 'text-black opacity-100' : 'text-black opacity-10 hover:opacity-30'}
                 `}
               >
                 {cat}
@@ -90,39 +90,29 @@ export default function Home() {
           })}
         </div>
 
-        <div className="w-full h-[1px] bg-black/10 mt-16 mb-8" />
+        <div className="w-full h-[1px] bg-black/5 mt-16 mb-8" />
 
-        {/* Bottom Links */}
-        <div className="flex flex-col gap-6 text-sm font-bold font-sans">
-          <button className="text-left hover:opacity-60 transition-opacity">Sign In</button>
-          
-          <div className="mt-4">
-            <span className="text-[10px] tracking-[0.2em] text-black/40 uppercase block mb-4">Social</span>
-            <div className="flex flex-col gap-3">
-              <button className="text-left hover:opacity-60 transition-opacity">Instagram</button>
-              <button className="text-left hover:opacity-60 transition-opacity">Facebook</button>
-              <button className="text-left hover:opacity-60 transition-opacity">Youtube</button>
-              <button className="text-left hover:opacity-60 transition-opacity">Twitter</button>
-            </div>
+        {/* Bottom - Search Only */}
+        <div className="relative group">
+          <div className="flex items-center gap-3 text-black/40 group-focus-within:text-black transition-colors">
+            <Search className="w-5 h-5" strokeWidth={1.5} />
+            <span className="text-sm font-bold font-sans uppercase tracking-widest">Search</span>
           </div>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="absolute inset-0 w-full opacity-0 cursor-text"
+            placeholder="Search"
+          />
         </div>
       </nav>
 
       {/* RIGHT PANE - Content List */}
-      <main className="flex-1 overflow-y-auto minimal-scrollbar relative bg-white">
+      <main className="flex-1 overflow-y-auto minimal-scrollbar relative bg-background">
         <div className="p-8 md:p-12 lg:p-16 min-h-full flex flex-col">
           
-          {/* Search Bar */}
-          <div className="relative mb-16 group">
-            <input
-              type="text"
-              placeholder="Search in archive"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent border-b border-black/10 pb-4 text-xl font-sans placeholder:text-black/20 focus:outline-none focus:border-black/40 transition-colors rounded-none"
-            />
-            <Search className="absolute right-0 bottom-5 w-5 h-5 text-black/20" strokeWidth={1.5} />
-          </div>
+          {/* Search Bar Removed from top */}
 
           {/* List */}
           {isLoading ? (
@@ -130,7 +120,7 @@ export default function Home() {
               <Loader2 className="w-6 h-6 animate-spin text-black/20" strokeWidth={1} />
             </div>
           ) : !items || items.length === 0 ? (
-            <div className="flex-1 flex flex-col items-center justify-center text-black/20 italic font-serif">
+            <div className="flex-1 flex flex-col items-center justify-center text-black/20 italic font-serif pt-32">
               <p className="text-2xl">No entries found.</p>
             </div>
           ) : (
@@ -138,21 +128,21 @@ export default function Home() {
               variants={containerVariants}
               initial="hidden"
               animate="show"
-              className="flex flex-col"
+              className="flex flex-col pt-32"
             >
               {items.map((item) => (
                 <motion.div
                   key={item.id}
                   variants={itemVariants}
                   onClick={(e) => handleEdit(e, item)}
-                  className="group py-6 border-b border-black/5 flex items-center justify-between cursor-pointer hover:bg-black/[0.02] px-4 -mx-4 transition-colors"
+                  className="group py-2 border-b border-black/5 flex items-center justify-between cursor-pointer hover:bg-black/[0.01] px-4 -mx-4 transition-colors"
                 >
-                  <h3 className="text-2xl md:text-3xl font-sans font-bold text-black opacity-80 group-hover:opacity-100 transition-opacity">
+                  <h3 className="text-xl md:text-2xl font-sans font-light tracking-tight text-black opacity-60 group-hover:opacity-100 transition-opacity leading-tight">
                     {item.title}
                   </h3>
                   
                   <div className="flex items-center gap-6">
-                    <span className="text-[10px] uppercase tracking-[0.2em] font-sans text-black/30">
+                    <span className="text-[9px] uppercase tracking-[0.2em] font-sans text-black/20">
                       {item.type}
                     </span>
                     <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

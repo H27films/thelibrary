@@ -5,12 +5,12 @@
 @tailwind utilities;
 
 :root {
-  /* Warm, organic off-white/beige background */
-  --background: 45 9% 89%; /* #E4E3E0 */
+  /* Cream / Off-white background */
+  --background: 40 30% 96%; /* #F8F5F0 - Creamier off-white */
   /* Deep charcoal 'ink' text */
   --foreground: 0 0% 8%;   /* #141414 */
   
-  --muted: 45 5% 80%;
+  --muted: 40 10% 90%;
   --muted-foreground: 0 0% 40%;
   
   --border: 0 0% 8%; /* Used with opacity typically */
