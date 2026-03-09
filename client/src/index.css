@@ -17,6 +17,7 @@
   
   --font-sans: 'Inter', sans-serif;
   --font-serif: 'Cormorant Garamond', serif;
+  --font-display: 'Inter', sans-serif;
 }
 
 @layer base {
@@ -27,9 +28,14 @@
     overscroll-behavior-y: none;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1, h2, h4, h5, h6 {
     font-family: var(--font-serif);
     @apply font-normal;
+  }
+
+  h3 {
+    font-family: var(--font-display);
+    @apply font-medium tracking-tight;
   }
 }
 
