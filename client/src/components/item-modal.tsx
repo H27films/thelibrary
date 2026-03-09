@@ -122,31 +122,31 @@ export function ItemModal({ isOpen, onClose, itemToEdit }: ItemModalProps) {
 
           {/* Modal Content */}
           <motion.div
-            initial={{ opacity: 0, y: 40, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.98 }}
-            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            className="relative w-full max-w-2xl bg-background border border-foreground/10 shadow-2xl overflow-hidden flex flex-col"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 10 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-2xl bg-background border border-black/5 shadow-2xl overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Header */}
-            <div className="flex justify-between items-center p-8 border-b border-foreground/5">
-              <h2 className="text-2xl font-serif italic">
+            <div className="flex justify-between items-center p-8 border-b border-black/5">
+              <h2 className="text-sm font-bold tracking-widest uppercase font-sans">
                 {isEditing ? "Edit Entry" : "New Entry"}
               </h2>
               <button 
                 onClick={onClose}
-                className="p-2 text-foreground/50 hover:text-foreground transition-colors group"
+                className="p-2 text-black/20 hover:text-black transition-colors group"
               >
-                <X className="w-6 h-6 group-hover:rotate-90 transition-transform duration-300" strokeWidth={1} />
+                <X className="w-5 h-5 transition-transform duration-300" strokeWidth={1.5} />
               </button>
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col p-8 gap-8">
+            <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col p-8 gap-10">
               
               {/* Type Selection */}
-              <div className="flex gap-6 border-b border-foreground/10 pb-6">
+              <div className="flex gap-8 border-b border-black/5 pb-8">
                 {(["book", "film", "person"] as const).map((type) => (
                   <label key={type} className="flex items-center gap-2 cursor-pointer group">
                     <input 
@@ -155,15 +155,15 @@ export function ItemModal({ isOpen, onClose, itemToEdit }: ItemModalProps) {
                       {...register("type")} 
                       className="sr-only" 
                     />
-                    <span className={`text-xs uppercase tracking-[0.2em] transition-all duration-300 ${
+                    <span className={`text-[10px] uppercase tracking-[0.2em] transition-all duration-300 font-sans ${
                       selectedType === type 
-                        ? "text-foreground font-semibold" 
-                        : "text-foreground/40 group-hover:text-foreground/70"
+                        ? "text-black font-bold" 
+                        : "text-black/10 group-hover:text-black/30"
                     }`}>
                       {type}
                     </span>
                     {selectedType === type && (
-                      <motion.div layoutId="activeDot" className="w-1 h-1 rounded-full bg-foreground" />
+                      <motion.div layoutId="activeDot" className="w-1 h-1 rounded-full bg-black" />
                     )}
                   </label>
                 ))}
@@ -173,58 +173,61 @@ export function ItemModal({ isOpen, onClose, itemToEdit }: ItemModalProps) {
               <div className="flex flex-col gap-2">
                 <input
                   {...register("title")}
-                  placeholder="Enter Title..."
-                  className="w-full bg-transparent border-none text-4xl md:text-5xl font-serif focus:outline-none focus:ring-0 placeholder:text-foreground/20 placeholder:italic"
+                  placeholder="Title"
+                  className="w-full bg-transparent border-none text-4xl md:text-5xl font-sans font-light tracking-tighter focus:outline-none focus:ring-0 placeholder:text-black/5"
                   autoFocus
                 />
-                {errors.title && <span className="text-xs text-red-500 font-sans tracking-widest uppercase mt-2">{errors.title.message}</span>}
+                {errors.title && <span className="text-[10px] text-red-500 font-sans tracking-widest uppercase mt-2">{errors.title.message}</span>}
               </div>
 
               {/* Dynamic Metadata Fields */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-4">
-                <div className="flex flex-col gap-2">
-                  <label className="text-[9px] uppercase tracking-[0.3em] text-foreground/50">
-                    {selectedType === 'film' ? 'Director' : selectedType === 'book' ? 'Author' : 'Role/Title'}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
+                <div className="flex flex-col gap-3">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-black/20 font-sans">
+                    {selectedType === 'film' ? 'Director' : selectedType === 'book' ? 'Author' : 'Role'}
                   </label>
                   <input
                     {...register("metadata.creator")}
-                    className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm font-sans focus:outline-none focus:border-foreground transition-colors"
+                    placeholder="..."
+                    className="w-full bg-transparent border-b border-black/5 pb-2 text-base font-sans font-light focus:outline-none focus:border-black/20 transition-colors placeholder:text-black/5"
                   />
                 </div>
 
-                <div className="flex flex-col gap-2">
-                  <label className="text-[9px] uppercase tracking-[0.3em] text-foreground/50">
-                    {selectedType === 'person' ? 'Active Years' : 'Release Year'}
+                <div className="flex flex-col gap-3">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-black/20 font-sans">
+                    {selectedType === 'person' ? 'Active Years' : 'Year'}
                   </label>
                   <input
                     {...register("metadata.year")}
-                    className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm font-sans focus:outline-none focus:border-foreground transition-colors"
+                    placeholder="YYYY"
+                    className="w-full bg-transparent border-b border-black/5 pb-2 text-base font-sans font-light focus:outline-none focus:border-black/20 transition-colors placeholder:text-black/5"
                   />
                 </div>
 
                 {selectedType !== 'person' && (
-                  <div className="flex flex-col gap-2 md:col-span-2">
-                    <label className="text-[9px] uppercase tracking-[0.3em] text-foreground/50">Genre / Category</label>
+                  <div className="flex flex-col gap-3 md:col-span-2">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-black/20 font-sans">Genre</label>
                     <input
                       {...register("metadata.genre")}
-                      className="w-full bg-transparent border-b border-foreground/10 pb-2 text-sm font-sans focus:outline-none focus:border-foreground transition-colors"
+                      placeholder="..."
+                      className="w-full bg-transparent border-b border-black/5 pb-2 text-base font-sans font-light focus:outline-none focus:border-black/20 transition-colors placeholder:text-black/5"
                     />
                   </div>
                 )}
               </div>
 
               {/* Footer / Submit */}
-              <div className="mt-8 pt-8 border-t border-foreground/5 flex justify-end">
+              <div className="mt-4 pt-8 border-t border-black/5 flex justify-end">
                 <button
                   type="submit"
                   disabled={isPending}
-                  className="group flex items-center gap-4 text-sm font-sans tracking-[0.2em] uppercase disabled:opacity-50 transition-all hover:gap-6"
+                  className="group flex items-center gap-3 text-[10px] font-bold font-sans tracking-widest uppercase disabled:opacity-50 transition-all hover:opacity-60"
                 >
-                  <span>{isPending ? "Saving..." : isEditing ? "Save Changes" : "Add Entry"}</span>
+                  <span>{isPending ? "Saving" : isEditing ? "Save" : "Add Entry"}</span>
                   {isPending ? (
-                    <Loader2 className="w-4 h-4 animate-spin" strokeWidth={1} />
+                    <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2} />
                   ) : (
-                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" strokeWidth={1} />
+                    <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-0.5" strokeWidth={2.5} />
                   )}
                 </button>
               </div>
