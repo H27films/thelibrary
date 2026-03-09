@@ -1,0 +1,19 @@
+Design Specification: "thelibrary" — Personal Digital Archive
+Core Concept:
+A high-end, design-first personal archive for cataloging a curated collection of favorite films, books, and people. The aesthetic is "Digital Editorial"—blending the tactile feel of a luxury fashion magazine with the precision of a modern Swiss design tool.
+Visual Identity & Theme:
+Aesthetic: Ultra-minimalist, sophisticated, and "quiet luxury."
+Color Palette: A warm, organic off-white/beige background (#E4E3E0) paired with deep charcoal "ink" text (#141414). No harsh blacks or pure whites.
+Typography:
+Primary (Display): Cormorant Garamond (Italic/Serif). Used for the logo, large navigation headers, and book/film titles to provide a human, literary touch.
+Secondary (UI): Inter (Sans-serif). Used for micro-labels, metadata, and functional elements to ensure technical precision.
+Layout Architecture:
+Fixed Viewport (No Global Scroll): The application is contained within exactly 100vh. There is no page-level scrolling; the interface feels like a physical object or a framed canvas.
+Split-Pane System: A fixed left-hand navigation rail featuring oversized, low-opacity serif text that scales up to 6xl. A right-hand content pane that handles its own internal scrolling with a hidden or ultra-thin minimalist scrollbar.
+Key UI Elements:
+The Search Bar: A single, thin horizontal line at the top with an italicized serif placeholder: "Type here to search". No box, no shadows.
+The Navigation: Large, vertically stacked category names (All, Books, Films, People). Active states are 100% opacity; inactive states are 30% opacity, creating a sense of depth and focus.
+The List Items: Entries are separated by hair-thin dividers (border-ink/5). Metadata (Director, Author, Genre) is presented in tiny uppercase labels with wide letter-spacing (tracking-[0.3em]).
+The "Add" Interaction: A minimalist overlay that uses a soft backdrop blur (backdrop-blur-sm) rather than a solid color, keeping the library visible in the background.
+The "Scroll" Philosophy:
+The app prioritizes "Information Density with Breathing Room." While the content is scrollable, the UI never breaks its frame. The internal scroll is smooth and fluid, ensuring that the header (the brand) and the footer (the metadata) remain anchored as structural pillars.
