@@ -20,6 +20,11 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <div className="fixed inset-0 bg-[#F5F2EE] flex flex-col overflow-hidden">
+        {/* Wordmark */}
+        <div className="fixed top-5 right-5 z-30 pointer-events-none">
+          <span className="text-[9px] uppercase tracking-[0.3em] text-[#1A1A1A]/25 font-medium">The Library</span>
+        </div>
+
         {/* Main content */}
         <div className="flex-1 overflow-hidden relative">
           <AnimatePresence mode="wait" initial={false}>
