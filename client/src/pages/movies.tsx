@@ -64,12 +64,15 @@ export default function Movies() {
           ? result.release_date?.slice(0, 4) || ""
           : result.first_air_date?.slice(0, 4) || "";
 
+      const genre = (detail.genres || []).map((g: any) => g.name).join(", ");
+
       const item: MovieItem = {
         id: `${result.media_type}-${result.id}-${Date.now()}`,
         title: result.title || result.name || "",
         year,
         director,
         cast,
+        genre,
         posterUrl: posterUrl(result.poster_path),
         tmdbId: result.id,
         type: result.media_type,
@@ -151,6 +154,9 @@ export default function Movies() {
                   <p className="text-[11px] tracking-wide text-[#1A1A1A]/40 mt-1.5 font-light">
                     {[item.year, item.director].filter(Boolean).join("  ·  ")}
                   </p>
+                  {item.genre && (
+                    <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5 font-light">{item.genre}</p>
+                  )}
                 </div>
                 <span className="text-[9px] uppercase tracking-[0.2em] text-[#1A1A1A]/25 pt-1.5 flex-shrink-0">
                   {item.type === "tv" ? "TV" : "Film"}

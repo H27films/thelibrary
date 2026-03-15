@@ -247,6 +247,7 @@ export function DetailView({ item, type, onClose, onDelete }: Props) {
                       onTap={handleNameTap}
                     />
                   )}
+                  <MetaRow label="Genre" value={(item as any).genre || ""} />
                   <MetaRow label="Synopsis" value={item.overview} />
                   <MetaRow
                     label="Added"
@@ -271,6 +272,7 @@ export function DetailView({ item, type, onClose, onDelete }: Props) {
                 </div>
                 <div className="px-5 mt-4">
                   <MetaRow label="Author" value={item.author} />
+                  <MetaRow label="Genre" value={(item as any).genre || ""} />
                   <MetaRow label="Description" value={item.description.replace(/<[^>]*>/g, "")} />
                   <MetaRow
                     label="Added"

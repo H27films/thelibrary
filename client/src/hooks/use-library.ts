@@ -6,6 +6,7 @@ export interface MovieItem {
   year: string;
   director: string;
   cast: string[];
+  genre: string;
   posterUrl: string;
   tmdbId: number;
   type: "movie" | "tv";
@@ -18,6 +19,7 @@ export interface BookItem {
   title: string;
   author: string;
   year: string;
+  genre: string;
   coverUrl: string;
   description: string;
   googleBooksId: string;

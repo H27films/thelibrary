@@ -11,6 +11,7 @@ interface GoogleBook {
     title: string;
     authors?: string[];
     publishedDate?: string;
+    categories?: string[];
     imageLinks?: { thumbnail?: string; smallThumbnail?: string };
     description?: string;
   };
@@ -48,6 +49,7 @@ export default function Books() {
       title: info.title,
       author: (info.authors || []).join(", "),
       year: (info.publishedDate || "").slice(0, 4),
+      genre: (info.categories || []).join(", "),
       coverUrl: info.imageLinks?.thumbnail?.replace("http://", "https://") || "",
       description: info.description || "",
       googleBooksId: book.id,
@@ -123,9 +125,9 @@ export default function Books() {
                 <div className="flex-1 min-w-0 pt-0.5">
                   <p className="font-serif text-[22px] font-light text-[#1A1A1A] leading-tight">{item.title}</p>
                   <p className="text-[11px] tracking-wide text-[#1A1A1A]/40 mt-1.5 font-light">{item.author}</p>
-                  {item.year && (
-                    <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5 font-light">{item.year}</p>
-                  )}
+                  <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5 font-light">
+                    {[item.year, item.genre].filter(Boolean).join("  ·  ")}
+                  </p>
                 </div>
               </motion.li>
             ))}
