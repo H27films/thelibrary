@@ -40,7 +40,7 @@ function App() {
 
         {/* Bottom Navigation */}
         <nav
-          className="flex-shrink-0 bg-[#F5F2EE] border-t border-black/8"
+          className="flex-shrink-0 bg-[#F5F2EE] border-t border-[#1A1A1A]/8"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
           <div className="flex">
@@ -50,12 +50,12 @@ function App() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className="flex-1 py-4 flex flex-col items-center gap-1 transition-all"
+                  className="flex-1 pt-3.5 pb-3 flex flex-col items-center gap-1.5 transition-all"
                   data-testid={`tab-${tab.id}`}
                 >
                   <span
-                    className={`text-[11px] uppercase tracking-widest font-semibold transition-colors ${
-                      isActive ? "text-[#8B2635]" : "text-[#1A1A1A]/25"
+                    className={`text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${
+                      isActive ? "text-[#1A1A1A]" : "text-[#1A1A1A]/25"
                     }`}
                   >
                     {tab.label}
@@ -63,7 +63,7 @@ function App() {
                   {isActive && (
                     <motion.div
                       layoutId="tab-indicator"
-                      className="w-4 h-[1.5px] bg-[#8B2635]"
+                      className="w-3 h-[1px] bg-[#8B2635]"
                     />
                   )}
                 </button>

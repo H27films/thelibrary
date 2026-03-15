@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Loader2, BookOpen } from "lucide-react";
+import { Search, Plus, Loader2 } from "lucide-react";
 import { useBooks, type BookItem } from "@/hooks/use-library";
 import { searchBooks } from "@/lib/google-books";
 import { DetailView } from "@/components/detail-view";
@@ -66,68 +66,71 @@ export default function Books() {
   return (
     <div className="flex flex-col h-full bg-[#F5F2EE]">
       {/* Header */}
-      <div className="px-5 pt-12 pb-4">
-        <div className="flex items-end justify-between mb-1">
-          <h1 className="font-serif text-[28px] font-medium text-[#1A1A1A] leading-none">Books</h1>
-          <span className="text-[11px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 mb-0.5">{items.length}</span>
+      <div className="px-5 pt-14 pb-0">
+        <div className="flex items-baseline justify-between">
+          <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">Books</h1>
+          <span className="text-[11px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 font-medium">{items.length}</span>
         </div>
-        <div className="h-[1px] bg-black/8 mt-4" />
+        <div className="h-px bg-[#1A1A1A]/10 mt-5" />
       </div>
 
       {/* Filter + Add */}
-      <div className="px-5 py-3 flex items-center gap-3">
-        <div className="flex-1 relative">
-          <Search className="absolute left-0 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#1A1A1A]/30" strokeWidth={2} />
+      <div className="px-5 py-3.5 flex items-center justify-between border-b border-[#1A1A1A]/8">
+        <div className="flex items-center gap-2.5 flex-1">
+          <Search className="w-3 h-3 text-[#1A1A1A]/25 flex-shrink-0" strokeWidth={2} />
           <input
             type="text"
-            placeholder="Filter collection"
+            placeholder="Filter"
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            className="w-full bg-transparent pl-5 text-[13px] placeholder:text-[#1A1A1A]/25 focus:outline-none text-[#1A1A1A]"
+            className="bg-transparent text-[12px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] w-full"
           />
         </div>
         <button
           onClick={() => { setSearchOpen(true); setTimeout(() => inputRef.current?.focus(), 100); }}
-          className="flex items-center gap-1.5 text-[11px] uppercase tracking-widest text-[#8B2635] font-semibold"
+          className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#8B2635] font-semibold ml-4"
           data-testid="button-add-book"
         >
-          <Plus className="w-3.5 h-3.5" strokeWidth={2.5} />
+          <Plus className="w-3 h-3" strokeWidth={2.5} />
           Add
         </button>
       </div>
-      <div className="h-[1px] bg-black/8 mx-5" />
 
       {/* List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-nav">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-48 text-[#1A1A1A]/20">
-            <BookOpen className="w-8 h-8 mb-3" strokeWidth={1} />
-            <p className="text-[13px] font-serif italic">Nothing saved yet</p>
+          <div className="px-5 pt-14">
+            <p className="font-serif text-[22px] font-light italic text-[#1A1A1A]/20 leading-snug">
+              Your collection<br />is waiting.
+            </p>
           </div>
         ) : (
-          <motion.ul>
-            {filtered.map((item) => (
+          <ul>
+            {filtered.map((item, i) => (
               <motion.li
                 key={item.id}
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                className="flex items-start gap-4 px-5 py-4 border-b border-black/5 cursor-pointer active:bg-black/[0.02]"
+                transition={{ delay: i * 0.03 }}
+                className="flex items-start gap-4 px-5 py-5 border-b border-[#1A1A1A]/7 cursor-pointer active:bg-[#1A1A1A]/[0.02]"
                 onClick={() => setSelectedItem(item)}
                 data-testid={`item-book-${item.id}`}
               >
                 {item.coverUrl ? (
-                  <img src={item.coverUrl} alt={item.title} className="w-11 h-16 object-cover flex-shrink-0 bg-black/5" />
+                  <img src={item.coverUrl} alt={item.title} className="w-12 h-[72px] object-cover flex-shrink-0" />
                 ) : (
-                  <div className="w-11 h-16 bg-black/5 flex-shrink-0" />
+                  <div className="w-12 h-[72px] bg-[#1A1A1A]/6 flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <p className="text-[15px] font-serif font-medium text-[#1A1A1A] leading-snug">{item.title}</p>
-                  <p className="text-[11px] text-[#1A1A1A]/40 mt-0.5">{item.author}</p>
-                  {item.year && <p className="text-[11px] text-[#1A1A1A]/30 mt-0.5">{item.year}</p>}
+                  <p className="font-serif text-[22px] font-light text-[#1A1A1A] leading-tight">{item.title}</p>
+                  <p className="text-[11px] tracking-wide text-[#1A1A1A]/40 mt-1.5 font-light">{item.author}</p>
+                  {item.year && (
+                    <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5 font-light">{item.year}</p>
+                  )}
                 </div>
               </motion.li>
             ))}
-          </motion.ul>
+          </ul>
         )}
       </div>
 
@@ -136,38 +139,41 @@ export default function Books() {
         {searchOpen && (
           <motion.div
             className="fixed inset-0 z-40 bg-[#F5F2EE] flex flex-col"
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
-            transition={{ duration: 0.25 }}
+            exit={{ opacity: 0, y: 16 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
           >
-            <div className="px-5 pt-14 pb-3 flex items-center gap-3 border-b border-black/8">
-              <Search className="w-4 h-4 text-[#1A1A1A]/40 flex-shrink-0" strokeWidth={1.5} />
-              <input
-                ref={inputRef}
-                type="text"
-                placeholder="Search books..."
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 bg-transparent text-[16px] placeholder:text-[#1A1A1A]/25 focus:outline-none text-[#1A1A1A]"
-                data-testid="input-search-book"
-              />
-              {isSearching ? (
-                <Loader2 className="w-4 h-4 animate-spin text-[#1A1A1A]/30" strokeWidth={1.5} />
-              ) : (
-                <button
-                  onClick={() => { setSearchOpen(false); setQuery(""); setResults([]); }}
-                  className="text-[11px] uppercase tracking-widest text-[#1A1A1A]/40"
-                >
-                  Cancel
-                </button>
-              )}
+            <div className="px-5 pt-14 pb-4 border-b border-[#1A1A1A]/10">
+              <div className="flex items-center gap-3">
+                <Search className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" strokeWidth={1.5} />
+                <input
+                  ref={inputRef}
+                  type="text"
+                  placeholder="Search books…"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  className="flex-1 bg-transparent text-[18px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
+                  data-testid="input-search-book"
+                />
+                {isSearching ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-[#1A1A1A]/25" strokeWidth={1.5} />
+                ) : (
+                  <button
+                    onClick={() => { setSearchOpen(false); setQuery(""); setResults([]); }}
+                    className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium"
+                  >
+                    Cancel
+                  </button>
+                )}
+              </div>
             </div>
+
             <div className="flex-1 overflow-y-auto hide-scrollbar">
               {results.map((r) => (
                 <button
                   key={r.id}
-                  className="w-full flex items-center gap-4 px-5 py-4 border-b border-black/5 text-left active:bg-black/[0.02]"
+                  className="w-full flex items-center gap-4 px-5 py-4 border-b border-[#1A1A1A]/7 text-left active:bg-[#1A1A1A]/[0.02]"
                   onClick={() => handleAdd(r)}
                   data-testid={`result-book-${r.id}`}
                 >
@@ -175,17 +181,17 @@ export default function Books() {
                     <img
                       src={r.volumeInfo.imageLinks.smallThumbnail.replace("http://", "https://")}
                       alt=""
-                      className="w-9 h-14 object-cover flex-shrink-0 bg-black/5"
+                      className="w-10 h-[60px] object-cover flex-shrink-0"
                     />
                   ) : (
-                    <div className="w-9 h-14 bg-black/5 flex-shrink-0" />
+                    <div className="w-10 h-[60px] bg-[#1A1A1A]/6 flex-shrink-0" />
                   )}
                   <div className="flex-1 min-w-0">
-                    <p className="text-[15px] font-serif font-medium text-[#1A1A1A] leading-snug">{r.volumeInfo.title}</p>
-                    <p className="text-[11px] text-[#1A1A1A]/40 mt-0.5">
+                    <p className="font-serif text-[20px] font-light text-[#1A1A1A] leading-tight">{r.volumeInfo.title}</p>
+                    <p className="text-[11px] text-[#1A1A1A]/35 mt-1 tracking-wide">
                       {(r.volumeInfo.authors || []).join(", ")}
                     </p>
-                    <p className="text-[11px] text-[#1A1A1A]/30 mt-0.5">
+                    <p className="text-[11px] text-[#1A1A1A]/25 mt-0.5 tracking-wide">
                       {(r.volumeInfo.publishedDate || "").slice(0, 4)}
                     </p>
                   </div>
@@ -196,15 +202,9 @@ export default function Books() {
         )}
       </AnimatePresence>
 
-      {/* Detail View */}
       <AnimatePresence>
         {selectedItem && (
-          <DetailView
-            item={selectedItem}
-            type="book"
-            onClose={() => setSelectedItem(null)}
-            onDelete={remove}
-          />
+          <DetailView item={selectedItem} type="book" onClose={() => setSelectedItem(null)} onDelete={remove} />
         )}
       </AnimatePresence>
     </div>
