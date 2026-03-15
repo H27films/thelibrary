@@ -21,8 +21,8 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <div className="fixed inset-0 bg-[#F5F2EE] flex flex-col overflow-hidden">
         {/* Wordmark */}
-        <div className="fixed top-5 right-5 z-30 pointer-events-none">
-          <span className="text-[9px] uppercase tracking-[0.3em] text-[#1A1A1A]/25 font-medium">The Library</span>
+        <div className="fixed top-5 left-5 z-30 pointer-events-none">
+          <span className="text-[9px] uppercase tracking-[0.3em] text-[#1A1A1A] font-medium">The Library</span>
         </div>
 
         {/* Main content */}
@@ -68,7 +68,7 @@ function App() {
                   {isActive && (
                     <motion.div
                       layoutId="tab-indicator"
-                      className="w-3 h-[1px] bg-[#8B2635]"
+                      className="w-3 h-[1px] bg-[#1A1A1A]"
                     />
                   )}
                 </button>

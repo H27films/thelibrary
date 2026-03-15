@@ -114,11 +114,10 @@ export default function Movies() {
         </div>
         <button
           onClick={() => { setSearchOpen(true); setTimeout(() => inputRef.current?.focus(), 100); }}
-          className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#8B2635] font-semibold ml-4"
+          className="flex items-center text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors ml-4"
           data-testid="button-add-film"
         >
-          <Plus className="w-3 h-3" strokeWidth={2.5} />
-          Add
+          <Plus className="w-4 h-4" strokeWidth={1.5} />
         </button>
       </div>
 
