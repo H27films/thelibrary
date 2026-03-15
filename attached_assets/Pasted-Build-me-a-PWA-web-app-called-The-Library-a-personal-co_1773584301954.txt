@@ -1,0 +1,55 @@
+Build me a PWA web app called "The Library" — a personal collection tracker for movies/TV, books, and people. It should work as an installable app on iPhone via Add to Home Screen.
+Design:
+Editorial and magazine style. Think Kinfolk magazine meets Criterion Collection. Use a clean serif font for headings (like Playfair Display or similar), sans-serif for body text. Neutral colour palette — off-white background (#F5F2EE), dark charcoal text (#1A1A1A), with one subtle accent colour (deep burgundy #8B2635). Lots of whitespace. Clean horizontal dividing lines between items. No rounded corners — sharp, editorial feel. Mobile first design optimised for iPhone.
+Sections:
+Three tabs at the bottom navigation: Movies & TV, Books, People
+Functionality for Movies & TV:
+
+Search bar at top — user types a movie or TV show name
+App calls TMDB API using key 2428c93b0a5eda8535766a3dc580e353 to search
+Show dropdown list of results with poster thumbnail, title and year
+User taps correct result
+Saves to local state for now (Supabase will be added later) with: title, year, director, main cast, poster image URL, TMDB ID, type (movie or TV), date added
+Main view shows saved items as a detailed list — poster on left, title, year, director and top cast on right
+Tap any item to see full detail page
+
+Functionality for Books:
+
+Search bar — user types book title or author
+App calls Google Books API (no key needed) to search
+Show dropdown list of results with cover thumbnail, title, author, year
+User taps correct result
+Saves to local state: title, author, year, cover image URL, description, Google Books ID, date added
+Main view shows saved books as detailed list — cover on left, title, author, year on right
+
+Functionality for People:
+
+Search bar — user types a person's name (director, author, actor etc)
+App calls TMDB API people search endpoint using same key
+Show dropdown with photo, name, known for
+User taps correct result
+Saves to local state: name, photo URL, known for department, known for titles, TMDB ID, date added
+Main view shows saved people as detailed list — photo on left, name and known for on right
+
+Additional features:
+
+Simple search/filter within each saved collection
+Tap any saved item to see full detail page with all information
+Delete button on detail page to remove from collection
+Total count of items shown at top of each section
+No login required — single user personal app
+
+PWA requirements:
+
+manifest.json with correct icons and standalone display mode
+Icons split into separate entries for "any" and "maskable" purpose
+All necessary Apple PWA meta tags in index.html for iOS installation
+Service worker for basic offline support
+
+Tech stack:
+
+React + TypeScript + Vite
+Tailwind CSS for styling
+Local state storage for now (Supabase to be integrated later)
+TMDB API for movies, TV and people
+Google Books API for books

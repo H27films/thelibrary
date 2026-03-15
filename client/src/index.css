@@ -1,73 +1,47 @@
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,500;1,600;1,700&family=Inter:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* Cream / Off-white background */
-  --background: 40 30% 96%; /* #F8F5F0 - Creamier off-white */
-  /* Deep charcoal 'ink' text */
-  --foreground: 0 0% 8%;   /* #141414 */
-  
-  --muted: 40 10% 90%;
-  --muted-foreground: 0 0% 40%;
-  
-  --border: 0 0% 8%; /* Used with opacity typically */
-  
+  --background: 35 25% 96%;       /* #F5F2EE */
+  --foreground: 0 0% 10%;         /* #1A1A1A */
+  --muted: 35 10% 88%;
+  --muted-foreground: 0 0% 45%;
+  --border: 0 0% 10%;
+  --accent: 349 56% 36%;          /* #8B2635 burgundy */
+  --accent-foreground: 0 0% 98%;
+
   --font-sans: 'Inter', sans-serif;
-  --font-serif: 'Cormorant Garamond', serif;
-  --font-display: 'Inter', sans-serif;
+  --font-serif: 'Playfair Display', serif;
 }
 
 @layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
     @apply bg-background text-foreground antialiased;
     font-family: var(--font-sans);
-    /* Prevent pull-to-refresh on mobile to maintain the fixed app feel */
-    overscroll-behavior-y: none;
+    overscroll-behavior: none;
   }
-
-  h1, h2, h4, h5, h6 {
+  h1, h2 {
     font-family: var(--font-serif);
-    @apply font-normal;
-  }
-
-  h3 {
-    font-family: var(--font-display);
-    @apply font-medium tracking-tight;
   }
 }
 
 @layer utilities {
-  /* Hide scrollbar for Chrome, Safari and Opera */
-  .hide-scrollbar::-webkit-scrollbar {
-    display: none;
+  .font-serif {
+    font-family: var(--font-serif);
   }
-  
-  /* Hide scrollbar for IE, Edge and Firefox */
-  .hide-scrollbar {
-    -ms-overflow-style: none;  /* IE and Edge */
-    scrollbar-width: none;  /* Firefox */
-  }
+  .hide-scrollbar::-webkit-scrollbar { display: none; }
+  .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-  /* Ultra-thin minimalist scrollbar fallback */
-  .minimal-scrollbar::-webkit-scrollbar {
-    width: 2px;
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
   }
-  .minimal-scrollbar::-webkit-scrollbar-track {
-    background: transparent;
+  .pb-nav {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom));
   }
-  .minimal-scrollbar::-webkit-scrollbar-thumb {
-    background: hsl(var(--foreground) / 0.1);
-  }
-  .minimal-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--foreground) / 0.3);
-  }
-}
-
-/* Custom Selection color to match the aesthetic */
-::selection {
-  background: hsl(var(--foreground) / 0.1);
-  color: hsl(var(--foreground));
 }
