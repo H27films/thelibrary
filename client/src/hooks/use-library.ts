@@ -12,6 +12,7 @@ export interface MovieItem {
   type: "movie" | "tv";
   overview: string;
   dateAdded: string;
+  rating?: number;
 }
 
 export interface BookItem {
@@ -24,6 +25,7 @@ export interface BookItem {
   description: string;
   googleBooksId: string;
   dateAdded: string;
+  rating?: number;
 }
 
 export interface PersonItem {
@@ -36,7 +38,6 @@ export interface PersonItem {
   dateAdded: string;
 }
 
-// Helper to map DB item to MovieItem
 function toMovieItem(item: any): MovieItem {
   const m = item.metadata || {};
   return {
@@ -51,10 +52,10 @@ function toMovieItem(item: any): MovieItem {
     type: m.mediaType || "movie",
     overview: m.overview || "",
     dateAdded: item.createdAt || new Date().toISOString(),
+    rating: m.rating,
   };
 }
 
-// Helper to map DB item to BookItem
 function toBookItem(item: any): BookItem {
   const m = item.metadata || {};
   return {
@@ -67,10 +68,10 @@ function toBookItem(item: any): BookItem {
     description: m.description || "",
     googleBooksId: m.googleBooksId || "",
     dateAdded: item.createdAt || new Date().toISOString(),
+    rating: m.rating,
   };
 }
 
-// Helper to map DB item to PersonItem
 function toPersonItem(item: any): PersonItem {
   const m = item.metadata || {};
   return {
@@ -114,30 +115,73 @@ export function useMovies() {
             tmdbId: movie.tmdbId,
             mediaType: movie.type,
             overview: movie.overview,
+            rating: movie.rating,
           },
         }),
       });
       if (!res.ok) throw new Error("Failed to save film");
       return res.json();
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/items", "film"] }),
+    onMutate: async (movie: MovieItem) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "film"] });
+      const previous = queryClient.getQueryData(["/api/items", "film"]);
+      queryClient.setQueryData(["/api/items", "film"], (old: MovieItem[] = []) => [movie, ...old]);
+      return { previous };
+    },
+    onError: (_err, _movie, context: any) => {
+      queryClient.setQueryData(["/api/items", "film"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "film"] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, rating }: { id: string; rating: number }) => {
+      const res = await fetch(`/api/items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          metadata: { rating },
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update rating");
+      return res.json();
+    },
+    onMutate: async ({ id, rating }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "film"] });
+      const previous = queryClient.getQueryData(["/api/items", "film"]);
+      queryClient.setQueryData(["/api/items", "film"], (old: MovieItem[] = []) =>
+        old.map(m => m.id === id ? { ...m, rating } : m)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      queryClient.setQueryData(["/api/items", "film"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "film"] }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
-      if (!res.ok && res.status !== 204)
-        throw new Error("Failed to delete film");
+      if (!res.ok && res.status !== 204) throw new Error("Failed to delete film");
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/items", "film"] }),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "film"] });
+      const previous = queryClient.getQueryData(["/api/items", "film"]);
+      queryClient.setQueryData(["/api/items", "film"], (old: MovieItem[] = []) => old.filter(m => m.id !== id));
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      queryClient.setQueryData(["/api/items", "film"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "film"] }),
   });
 
   return {
     items: data as MovieItem[],
     add: (movie: MovieItem) => createMutation.mutate(movie),
     remove: (id: string) => deleteMutation.mutate(id),
+    updateRating: (id: string, rating: number) => updateMutation.mutate({ id, rating }),
   };
 }
 
@@ -169,30 +213,73 @@ export function useBooks() {
             coverUrl: book.coverUrl,
             description: book.description,
             googleBooksId: book.googleBooksId,
+            rating: book.rating,
           },
         }),
       });
       if (!res.ok) throw new Error("Failed to save book");
       return res.json();
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/items", "book"] }),
+    onMutate: async (book: BookItem) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "book"] });
+      const previous = queryClient.getQueryData(["/api/items", "book"]);
+      queryClient.setQueryData(["/api/items", "book"], (old: BookItem[] = []) => [book, ...old]);
+      return { previous };
+    },
+    onError: (_err, _book, context: any) => {
+      queryClient.setQueryData(["/api/items", "book"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "book"] }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: async ({ id, rating }: { id: string; rating: number }) => {
+      const res = await fetch(`/api/items/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          metadata: { rating },
+        }),
+      });
+      if (!res.ok) throw new Error("Failed to update rating");
+      return res.json();
+    },
+    onMutate: async ({ id, rating }) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "book"] });
+      const previous = queryClient.getQueryData(["/api/items", "book"]);
+      queryClient.setQueryData(["/api/items", "book"], (old: BookItem[] = []) =>
+        old.map(b => b.id === id ? { ...b, rating } : b)
+      );
+      return { previous };
+    },
+    onError: (_err, _vars, context: any) => {
+      queryClient.setQueryData(["/api/items", "book"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "book"] }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
-      if (!res.ok && res.status !== 204)
-        throw new Error("Failed to delete book");
+      if (!res.ok && res.status !== 204) throw new Error("Failed to delete book");
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/items", "book"] }),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "book"] });
+      const previous = queryClient.getQueryData(["/api/items", "book"]);
+      queryClient.setQueryData(["/api/items", "book"], (old: BookItem[] = []) => old.filter(b => b.id !== id));
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      queryClient.setQueryData(["/api/items", "book"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "book"] }),
   });
 
   return {
     items: data as BookItem[],
     add: (book: BookItem) => createMutation.mutate(book),
     remove: (id: string) => deleteMutation.mutate(id),
+    updateRating: (id: string, rating: number) => updateMutation.mutate({ id, rating }),
   };
 }
 
@@ -228,18 +315,33 @@ export function usePeople() {
       if (!res.ok) throw new Error("Failed to save person");
       return res.json();
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/items", "person"] }),
+    onMutate: async (person: PersonItem) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "person"] });
+      const previous = queryClient.getQueryData(["/api/items", "person"]);
+      queryClient.setQueryData(["/api/items", "person"], (old: PersonItem[] = []) => [person, ...old]);
+      return { previous };
+    },
+    onError: (_err, _person, context: any) => {
+      queryClient.setQueryData(["/api/items", "person"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "person"] }),
   });
 
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => {
       const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
-      if (!res.ok && res.status !== 204)
-        throw new Error("Failed to delete person");
+      if (!res.ok && res.status !== 204) throw new Error("Failed to delete person");
     },
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: ["/api/items", "person"] }),
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ["/api/items", "person"] });
+      const previous = queryClient.getQueryData(["/api/items", "person"]);
+      queryClient.setQueryData(["/api/items", "person"], (old: PersonItem[] = []) => old.filter(p => p.id !== id));
+      return { previous };
+    },
+    onError: (_err, _id, context: any) => {
+      queryClient.setQueryData(["/api/items", "person"], context?.previous);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ["/api/items", "person"] }),
   });
 
   return {
