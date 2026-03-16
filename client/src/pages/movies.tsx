@@ -2,7 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Plus, Loader2, Link } from "lucide-react";
 import { useMovies, type MovieItem } from "@/hooks/use-library";
-import { searchMulti, getMovieDetails, getTVDetails, posterUrl } from "@/lib/tmdb";
+import {
+  searchMulti,
+  getMovieDetails,
+  getTVDetails,
+  posterUrl,
+} from "@/lib/tmdb";
 import { DetailView } from "@/components/detail-view";
 
 interface SearchResult {
@@ -16,7 +21,9 @@ interface SearchResult {
   overview: string;
 }
 
-function parseTmdbUrl(url: string): { type: "movie" | "tv"; id: number } | null {
+function parseTmdbUrl(
+  url: string,
+): { type: "movie" | "tv"; id: number } | null {
   const match = url.match(/themoviedb\.org\/(movie|tv)\/(\d+)/);
   if (!match) return null;
   return { type: match[1] as "movie" | "tv", id: parseInt(match[2], 10) };
@@ -25,7 +32,7 @@ function parseTmdbUrl(url: string): { type: "movie" | "tv"; id: number } | null 
 function RatingDisplay({ rating }: { rating?: number }) {
   if (rating === undefined || rating === null) return null;
   return (
-    <span className="text-[11px] tracking-wide text-[#1A1A1A]/50 font-light">
+    <span className="font-serif text-[28px] font-light text-[#1A1A1A] leading-none">
       {rating % 1 === 0 ? rating.toFixed(0) : rating.toFixed(1)}
     </span>
   );
@@ -39,7 +46,9 @@ export default function Movies() {
   const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "genre" | "director">("all");
+  const [filterType, setFilterType] = useState<"all" | "genre" | "director">(
+    "all",
+  );
   const [selectedItem, setSelectedItem] = useState<MovieItem | null>(null);
   const [urlMode, setUrlMode] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -49,7 +58,10 @@ export default function Movies() {
   const urlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (!query.trim()) { setResults([]); return; }
+    if (!query.trim()) {
+      setResults([]);
+      return;
+    }
     setIsSearching(true);
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(async () => {
@@ -62,14 +74,20 @@ export default function Movies() {
     }, 350);
   }, [query]);
 
-  const buildAndSave = async (mediaType: "movie" | "tv", id: number, overrides?: Partial<SearchResult>) => {
+  const buildAndSave = async (
+    mediaType: "movie" | "tv",
+    id: number,
+    overrides?: Partial<SearchResult>,
+  ) => {
     let detail: any;
     let director = "";
     let cast: string[] = [];
 
     if (mediaType === "movie") {
       detail = await getMovieDetails(id);
-      director = detail.credits?.crew?.find((c: any) => c.job === "Director")?.name || "";
+      director =
+        detail.credits?.crew?.find((c: any) => c.job === "Director")?.name ||
+        "";
       cast = (detail.credits?.cast || []).slice(0, 6).map((c: any) => c.name);
     } else {
       detail = await getTVDetails(id);
@@ -77,9 +95,10 @@ export default function Movies() {
       cast = (detail.credits?.cast || []).slice(0, 6).map((c: any) => c.name);
     }
 
-    const year = mediaType === "movie"
-      ? (detail.release_date || "").slice(0, 4)
-      : (detail.first_air_date || "").slice(0, 4);
+    const year =
+      mediaType === "movie"
+        ? (detail.release_date || "").slice(0, 4)
+        : (detail.first_air_date || "").slice(0, 4);
 
     const genre = (detail.genres || []).map((g: any) => g.name).join(", ");
 
@@ -90,7 +109,9 @@ export default function Movies() {
       director,
       cast,
       genre,
-      posterUrl: posterUrl(detail.poster_path || overrides?.poster_path || null),
+      posterUrl: posterUrl(
+        detail.poster_path || overrides?.poster_path || null,
+      ),
       tmdbId: id,
       type: mediaType,
       overview: detail.overview || "",
@@ -140,24 +161,30 @@ export default function Movies() {
     setUrlError("");
   };
 
-  // Get unique genres and directors for filter suggestions
-  const allGenres = [...new Set(items.flatMap(i => i.genre.split(", ").filter(Boolean)))].sort();
-  const allDirectors = [...new Set(items.map(i => i.director).filter(Boolean))].sort();
+  const allGenres = [
+    ...new Set(
+      items.flatMap((i) => (i.genre || "").split(", ").filter(Boolean)),
+    ),
+  ].sort();
+  const allDirectors = [
+    ...new Set(items.map((i) => i.director).filter(Boolean)),
+  ].sort() as string[];
 
   const filtered = items.filter((i) => {
     if (!filterQuery) return true;
     const q = filterQuery.toLowerCase();
     if (filterType === "genre") return i.genre.toLowerCase().includes(q);
     if (filterType === "director") return i.director.toLowerCase().includes(q);
-    return i.title.toLowerCase().includes(q) ||
+    return (
+      i.title.toLowerCase().includes(q) ||
       i.genre.toLowerCase().includes(q) ||
-      i.director.toLowerCase().includes(q);
+      i.director.toLowerCase().includes(q)
+    );
   });
 
-  // sync selectedItem when items update (e.g. after rating)
   useEffect(() => {
     if (selectedItem) {
-      const updated = items.find(i => i.id === selectedItem.id);
+      const updated = items.find((i) => i.id === selectedItem.id);
       if (updated) setSelectedItem(updated);
     }
   }, [items]);
@@ -167,8 +194,12 @@ export default function Movies() {
       {/* Header */}
       <div className="px-5 pt-14 pb-0">
         <div className="flex items-baseline justify-between">
-          <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">Films & TV</h1>
-          <span className="text-[11px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 font-medium">{items.length}</span>
+          <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">
+            Films & TV
+          </h1>
+          <span className="text-[11px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 font-medium">
+            {items.length}
+          </span>
         </div>
         <div className="h-px bg-[#1A1A1A]/10 mt-5" />
       </div>
@@ -177,7 +208,10 @@ export default function Movies() {
       <div className="px-5 py-3.5 border-b border-[#1A1A1A]/8">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5 flex-1">
-            <Search className="w-3 h-3 text-[#1A1A1A]/25 flex-shrink-0" strokeWidth={2} />
+            <Search
+              className="w-3 h-3 text-[#1A1A1A]/25 flex-shrink-0"
+              strokeWidth={2}
+            />
             <input
               type="text"
               placeholder="Filter by title, genre, director…"
@@ -187,16 +221,20 @@ export default function Movies() {
             />
           </div>
           <button
-            onClick={() => { setSearchOpen(true); setTimeout(() => inputRef.current?.focus(), 100); }}
+            onClick={() => {
+              setSearchOpen(true);
+              setTimeout(() => inputRef.current?.focus(), 100);
+            }}
             className="flex items-center text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors"
           >
             <Plus className="w-4 h-4" strokeWidth={1.5} />
           </button>
         </div>
+
         {/* Filter type pills */}
         {filterQuery.length > 0 && (
           <div className="flex gap-2 mt-2.5">
-            {(["all", "genre", "director"] as const).map(type => (
+            {(["all", "genre", "director"] as const).map((type) => (
               <button
                 key={type}
                 onClick={() => setFilterType(type)}
@@ -206,15 +244,20 @@ export default function Movies() {
                     : "border-[#1A1A1A]/20 text-[#1A1A1A]/35"
                 }`}
               >
-                {type === "all" ? "All" : type === "genre" ? "Genre" : "Director"}
+                {type === "all"
+                  ? "All"
+                  : type === "genre"
+                    ? "Genre"
+                    : "Director"}
               </button>
             ))}
           </div>
         )}
+
         {/* Genre suggestions */}
         {filterType === "genre" && filterQuery.length === 0 && (
           <div className="flex flex-wrap gap-2 mt-2.5">
-            {allGenres.slice(0, 8).map(genre => (
+            {allGenres.slice(0, 8).map((genre) => (
               <button
                 key={genre}
                 onClick={() => setFilterQuery(genre)}
@@ -225,10 +268,11 @@ export default function Movies() {
             ))}
           </div>
         )}
+
         {/* Director suggestions */}
         {filterType === "director" && filterQuery.length === 0 && (
           <div className="flex flex-wrap gap-2 mt-2.5">
-            {allDirectors.slice(0, 6).map(director => (
+            {allDirectors.slice(0, 6).map((director) => (
               <button
                 key={director}
                 onClick={() => setFilterQuery(director)}
@@ -246,7 +290,9 @@ export default function Movies() {
         {filtered.length === 0 ? (
           <div className="px-5 pt-14">
             <p className="font-serif text-[22px] font-light italic text-[#1A1A1A]/20 leading-snug">
-              Your collection<br />is waiting.
+              Your collection
+              <br />
+              is waiting.
             </p>
           </div>
         ) : (
@@ -261,20 +307,28 @@ export default function Movies() {
                 onClick={() => setSelectedItem(item)}
               >
                 {item.posterUrl ? (
-                  <img src={item.posterUrl} alt={item.title} className="w-12 h-[72px] object-cover flex-shrink-0" />
+                  <img
+                    src={item.posterUrl}
+                    alt={item.title}
+                    className="w-12 h-[72px] object-cover flex-shrink-0"
+                  />
                 ) : (
                   <div className="w-12 h-[72px] bg-[#1A1A1A]/6 flex-shrink-0" />
                 )}
                 <div className="flex-1 min-w-0 pt-0.5">
-                  <p className="font-serif text-[22px] font-light text-[#1A1A1A] leading-tight">{item.title}</p>
+                  <p className="font-serif text-[22px] font-light text-[#1A1A1A] leading-tight">
+                    {item.title}
+                  </p>
                   <p className="text-[11px] tracking-wide text-[#1A1A1A]/40 mt-1.5 font-light">
                     {[item.year, item.director].filter(Boolean).join("  ·  ")}
                   </p>
                   {item.genre && (
-                    <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5 font-light">{item.genre}</p>
+                    <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5 font-light">
+                      {item.genre}
+                    </p>
                   )}
                 </div>
-                <div className="flex flex-col items-end gap-1.5 pt-0.5 flex-shrink-0">
+                <div className="flex flex-col items-end gap-2 pt-0.5 flex-shrink-0">
                   <span className="text-[9px] uppercase tracking-[0.2em] text-[#1A1A1A]/25">
                     {item.type === "tv" ? "TV" : "Film"}
                   </span>
@@ -299,8 +353,17 @@ export default function Movies() {
             <div className="px-5 pt-14 pb-4 border-b border-[#1A1A1A]/10">
               <AnimatePresence mode="wait" initial={false}>
                 {!urlMode ? (
-                  <motion.div key="search" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3">
-                    <Search className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" strokeWidth={1.5} />
+                  <motion.div
+                    key="search"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-3"
+                  >
+                    <Search
+                      className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0"
+                      strokeWidth={1.5}
+                    />
                     <input
                       ref={inputRef}
                       type="text"
@@ -310,27 +373,55 @@ export default function Movies() {
                       className="flex-1 bg-transparent text-[18px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
                     />
                     {isSearching ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-[#1A1A1A]/25" strokeWidth={1.5} />
+                      <Loader2
+                        className="w-4 h-4 animate-spin text-[#1A1A1A]/25"
+                        strokeWidth={1.5}
+                      />
                     ) : (
-                      <button onClick={closeSearch} className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium">Cancel</button>
+                      <button
+                        onClick={closeSearch}
+                        className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium"
+                      >
+                        Cancel
+                      </button>
                     )}
                   </motion.div>
                 ) : (
-                  <motion.div key="url" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-3">
-                    <Link className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" strokeWidth={1.5} />
+                  <motion.div
+                    key="url"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex items-center gap-3"
+                  >
+                    <Link
+                      className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0"
+                      strokeWidth={1.5}
+                    />
                     <input
                       ref={urlInputRef}
                       type="url"
                       placeholder="themoviedb.org/movie/…"
                       value={urlInput}
-                      onChange={(e) => { setUrlInput(e.target.value); setUrlError(""); }}
+                      onChange={(e) => {
+                        setUrlInput(e.target.value);
+                        setUrlError("");
+                      }}
                       onKeyDown={(e) => e.key === "Enter" && handleUrlAdd()}
                       className="flex-1 bg-transparent text-[16px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
                     />
                     {loading ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-[#1A1A1A]/25" strokeWidth={1.5} />
+                      <Loader2
+                        className="w-4 h-4 animate-spin text-[#1A1A1A]/25"
+                        strokeWidth={1.5}
+                      />
                     ) : (
-                      <button onClick={handleUrlAdd} className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A] font-semibold">Fetch</button>
+                      <button
+                        onClick={handleUrlAdd}
+                        className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A] font-semibold"
+                      >
+                        Fetch
+                      </button>
                     )}
                   </motion.div>
                 )}
@@ -340,36 +431,81 @@ export default function Movies() {
             <div className="flex-1 overflow-y-auto hide-scrollbar">
               {urlMode && (
                 <div className="px-5 pt-6">
-                  {urlError && <p className="text-[12px] text-[#8B2635] mb-4">{urlError}</p>}
+                  {urlError && (
+                    <p className="text-[12px] text-[#8B2635] mb-4">
+                      {urlError}
+                    </p>
+                  )}
                   <p className="text-[12px] text-[#1A1A1A]/35 leading-relaxed">
-                    Go to <span className="underline underline-offset-2">themoviedb.org</span>, find the film or TV show, then paste the page URL here.
+                    Go to{" "}
+                    <span className="underline underline-offset-2">
+                      themoviedb.org
+                    </span>
+                    , find the film or TV show, then paste the page URL here.
                   </p>
-                  <button onClick={() => { setUrlMode(false); setTimeout(() => inputRef.current?.focus(), 50); }} className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium">← Back to search</button>
+                  <button
+                    onClick={() => {
+                      setUrlMode(false);
+                      setTimeout(() => inputRef.current?.focus(), 50);
+                    }}
+                    className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium"
+                  >
+                    ← Back to search
+                  </button>
                 </div>
               )}
               {!urlMode && (
                 <>
-                  {loading && <div className="flex justify-center py-14"><Loader2 className="w-5 h-5 animate-spin text-[#1A1A1A]/30" strokeWidth={1.5} /></div>}
-                  {!loading && results.map((r) => (
-                    <button key={r.id} className="w-full flex items-center gap-4 px-5 py-4 border-b border-[#1A1A1A]/7 text-left active:bg-[#1A1A1A]/[0.02]" onClick={() => handleAdd(r)}>
-                      {r.poster_path ? (
-                        <img src={posterUrl(r.poster_path, "w92")} alt="" className="w-10 h-[60px] object-cover flex-shrink-0" />
-                      ) : (
-                        <div className="w-10 h-[60px] bg-[#1A1A1A]/6 flex-shrink-0" />
-                      )}
-                      <div className="flex-1 min-w-0">
-                        <p className="font-serif text-[20px] font-light text-[#1A1A1A] leading-tight">{r.title || r.name}</p>
-                        <p className="text-[11px] text-[#1A1A1A]/35 mt-1 tracking-wide">
-                          {(r.release_date || r.first_air_date || "").slice(0, 4)}
-                          {"  ·  "}
-                          <span className="uppercase text-[9px] tracking-[0.15em]">{r.media_type === "tv" ? "TV" : "Film"}</span>
-                        </p>
-                      </div>
-                    </button>
-                  ))}
+                  {loading && (
+                    <div className="flex justify-center py-14">
+                      <Loader2
+                        className="w-5 h-5 animate-spin text-[#1A1A1A]/30"
+                        strokeWidth={1.5}
+                      />
+                    </div>
+                  )}
+                  {!loading &&
+                    results.map((r) => (
+                      <button
+                        key={r.id}
+                        className="w-full flex items-center gap-4 px-5 py-4 border-b border-[#1A1A1A]/7 text-left active:bg-[#1A1A1A]/[0.02]"
+                        onClick={() => handleAdd(r)}
+                      >
+                        {r.poster_path ? (
+                          <img
+                            src={posterUrl(r.poster_path, "w92")}
+                            alt=""
+                            className="w-10 h-[60px] object-cover flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-10 h-[60px] bg-[#1A1A1A]/6 flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-serif text-[20px] font-light text-[#1A1A1A] leading-tight">
+                            {r.title || r.name}
+                          </p>
+                          <p className="text-[11px] text-[#1A1A1A]/35 mt-1 tracking-wide">
+                            {(r.release_date || r.first_air_date || "").slice(
+                              0,
+                              4,
+                            )}
+                            {"  ·  "}
+                            <span className="uppercase text-[9px] tracking-[0.15em]">
+                              {r.media_type === "tv" ? "TV" : "Film"}
+                            </span>
+                          </p>
+                        </div>
+                      </button>
+                    ))}
                   {!loading && query.trim().length > 1 && (
                     <div className="px-5 pt-6 pb-4">
-                      <button onClick={() => { setUrlMode(true); setTimeout(() => urlInputRef.current?.focus(), 50); }} className="flex items-center gap-2 text-[11px] text-[#1A1A1A]/35 hover:text-[#1A1A1A]/60 transition-colors">
+                      <button
+                        onClick={() => {
+                          setUrlMode(true);
+                          setTimeout(() => urlInputRef.current?.focus(), 50);
+                        }}
+                        className="flex items-center gap-2 text-[11px] text-[#1A1A1A]/35 hover:text-[#1A1A1A]/60 transition-colors"
+                      >
                         <Link className="w-3 h-3" strokeWidth={1.5} />
                         Can't find it? Paste a TMDB URL instead
                       </button>
