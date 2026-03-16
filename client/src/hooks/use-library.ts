@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface MovieItem {
   id: string;
@@ -36,39 +36,4 @@ export interface PersonItem {
   dateAdded: string;
 }
 
-function useLocalStorage<T>(key: string, initial: T[]) {
-  const [items, setItems] = useState<T[]>(() => {
-    try {
-      const stored = localStorage.getItem(key);
-      return stored ? JSON.parse(stored) : initial;
-    } catch {
-      return initial;
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(key, JSON.stringify(items));
-  }, [key, items]);
-
-  const add = useCallback((item: T) => {
-    setItems((prev) => [item, ...prev]);
-  }, []);
-
-  const remove = useCallback((id: string) => {
-    setItems((prev) => prev.filter((i: any) => i.id !== id));
-  }, []);
-
-  return { items, add, remove };
-}
-
-export function useMovies() {
-  return useLocalStorage<MovieItem>("library_movies", []);
-}
-
-export function useBooks() {
-  return useLocalStorage<BookItem>("library_books", []);
-}
-
-export function usePeople() {
-  return useLocalStorage<PersonItem>("library_people", []);
-}
+// Helper to
