@@ -42,8 +42,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateItem(id: number, updates: UpdateItemRequest): Promise<ItemResponse> {
+    const existing = await this.getItem(id);
+    const mergedMetadata = {
+      ...(existing?.metadata as object || {}),
+      ...(updates.metadata as object || {}),
+    };
     const [updated] = await db.update(items)
-      .set(updates)
+      .set({ ...updates, metadata: mergedMetadata })
       .where(eq(items.id, id))
       .returning();
     return updated;
