@@ -137,7 +137,7 @@ function RatingPicker({
         className="bg-transparent text-[42px] font-serif font-light text-[#1A1A1A] w-32 focus:outline-none placeholder:text-[#1A1A1A]/15 leading-none"
       />
       <p className="text-[10px] text-[#1A1A1A]/25 mt-1">
-        Enter 0 – 10, rounded to 0.5
+        
       </p>
     </div>
   );
