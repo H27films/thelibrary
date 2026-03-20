@@ -46,9 +46,7 @@ export default function Movies() {
   const [loading, setLoading] = useState(false);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "genre" | "director">(
-    "all",
-  );
+  const [filterType, setFilterType] = useState<"all" | "genre" | "director">("all");
   const [selectedItem, setSelectedItem] = useState<MovieItem | null>(null);
   const [urlMode, setUrlMode] = useState(false);
   const [urlInput, setUrlInput] = useState("");
@@ -86,8 +84,7 @@ export default function Movies() {
     if (mediaType === "movie") {
       detail = await getMovieDetails(id);
       director =
-        detail.credits?.crew?.find((c: any) => c.job === "Director")?.name ||
-        "";
+        detail.credits?.crew?.find((c: any) => c.job === "Director")?.name || "";
       cast = (detail.credits?.cast || []).slice(0, 6).map((c: any) => c.name);
     } else {
       detail = await getTVDetails(id);
@@ -109,9 +106,7 @@ export default function Movies() {
       director,
       cast,
       genre,
-      posterUrl: posterUrl(
-        detail.poster_path || overrides?.poster_path || null,
-      ),
+      posterUrl: posterUrl(detail.poster_path || overrides?.poster_path || null),
       tmdbId: id,
       type: mediaType,
       overview: detail.overview || "",
@@ -159,7 +154,6 @@ export default function Movies() {
     new Set(items.map((i) => i.director).filter(Boolean)),
   ).sort() as string[];
 
-  // Sort by recently added first
   const sortedItems = [...items].sort((a, b) => {
     const dateA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
     const dateB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
@@ -200,7 +194,7 @@ export default function Movies() {
         <div className="h-px bg-[#1A1A1A]/10 mt-5" />
       </div>
 
-      {/* Search bar (add to library) */}
+      {/* Search / Add bar (was filter bar) */}
       <div className="px-5 py-3.5 border-b border-[#1A1A1A]/8">
         <div className="flex items-center gap-3">
           <Search
@@ -240,6 +234,7 @@ export default function Movies() {
               />
             )}
           </AnimatePresence>
+
           {isSearching || loading ? (
             <Loader2
               className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/25 flex-shrink-0"
@@ -253,9 +248,13 @@ export default function Movies() {
               Fetch
             </button>
           ) : null}
+
+          {/* Chevron opens filter panel */}
           <button
             onClick={() => setFilterOpen((v) => !v)}
-            className={`flex items-center text-[#1A1A1A]/40 hover:text-[#1A1A1A] transition-colors flex-shrink-0 ${filterOpen ? "text-[#1A1A1A]" : ""}`}
+            className={`flex items-center transition-colors flex-shrink-0 ${
+              filterOpen ? "text-[#1A1A1A]" : "text-[#1A1A1A]/40 hover:text-[#1A1A1A]"
+            }`}
           >
             <motion.div
               animate={{ rotate: filterOpen ? 180 : 0 }}
@@ -347,7 +346,7 @@ export default function Movies() {
         )}
       </div>
 
-      {/* Filter panel (collapsible) */}
+      {/* Filter panel (chevron-triggered, collapsible) */}
       <AnimatePresence>
         {filterOpen && (
           <motion.div
@@ -385,11 +384,7 @@ export default function Movies() {
                           : "border-[#1A1A1A]/20 text-[#1A1A1A]/35"
                       }`}
                     >
-                      {type === "all"
-                        ? "All"
-                        : type === "genre"
-                          ? "Genre"
-                          : "Director"}
+                      {type === "all" ? "All" : type === "genre" ? "Genre" : "Director"}
                     </button>
                   ))}
                 </div>
