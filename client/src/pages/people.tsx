@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Loader2 } from "lucide-react";
+import { Search, ChevronDown, Loader2, Plus } from "lucide-react";
 import { usePeople, type PersonItem } from "@/hooks/use-library";
 import { searchPeople, profileUrl } from "@/lib/tmdb";
 import { DetailView } from "@/components/detail-view";
@@ -18,11 +18,12 @@ export default function People() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TMDBPerson[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<PersonItem | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!query.trim()) { setResults([]); return; }
@@ -38,11 +39,12 @@ export default function People() {
     }, 350);
   }, [query]);
 
-  const handleAdd = (person: TMDBPerson) => {
+  const handleQuickAdd = (person: TMDBPerson, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLoadingId(person.id);
     const knownForTitles = (person.known_for || [])
       .map((k) => k.title || k.name || "")
       .filter(Boolean);
-
     const item: PersonItem = {
       id: `person-${person.id}-${Date.now()}`,
       name: person.name,
@@ -53,46 +55,162 @@ export default function People() {
       dateAdded: new Date().toISOString(),
     };
     add(item);
-    setSearchOpen(false);
-    setQuery("");
-    setResults([]);
+    setLoadingId(null);
   };
 
+  const allDepartments = Array.from(
+    new Set(items.map((i) => i.knownFor).filter(Boolean))
+  ).sort();
+
   const filtered = items.filter((i) =>
-    filterQuery ? i.name.toLowerCase().includes(filterQuery.toLowerCase()) : true
+    filterQuery ? i.name.toLowerCase().includes(filterQuery.toLowerCase()) ||
+      i.knownFor?.toLowerCase().includes(filterQuery.toLowerCase()) : true
   );
+
+  const addedIds = new Set(items.map((i) => i.tmdbId));
 
   return (
     <div className="flex flex-col h-full bg-[#F5F2EE]">
+
       {/* Header */}
       <div className="px-5 pt-14 pb-0">
         <div className="flex items-baseline justify-between">
           <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">People</h1>
           <span className="text-[11px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 font-medium">{items.length}</span>
         </div>
-        <div className="h-px bg-[#1A1A1A]/10 mt-5" />
       </div>
 
-      {/* Filter + Add */}
-      <div className="px-5 py-3.5 flex items-center justify-between border-b border-[#1A1A1A]/8">
-        <div className="flex items-center gap-2.5 flex-1">
-          <Search className="w-3 h-3 text-[#1A1A1A]/25 flex-shrink-0" strokeWidth={2} />
+      {/* Search / Add bar */}
+      <div className="px-5 py-3.5 border-b border-[#1A1A1A]/8">
+        <div className="flex items-center gap-3">
           <input
+            ref={searchInputRef}
             type="text"
-            placeholder="Filter"
-            value={filterQuery}
-            onChange={(e) => setFilterQuery(e.target.value)}
-            className="bg-transparent text-[12px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] w-full"
+            placeholder="Search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1 bg-transparent font-serif text-[28px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] leading-none tracking-tight"
           />
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {isSearching || loadingId !== null ? (
+              <Loader2 className="w-4 h-4 animate-spin text-[#1A1A1A]/25" strokeWidth={1.5} />
+            ) : null}
+            <button
+              onClick={() => setFilterOpen((v) => !v)}
+              className={`flex items-center transition-colors ${
+                filterOpen ? "text-[#1A1A1A]" : "text-[#1A1A1A]/40 hover:text-[#1A1A1A]"
+              }`}
+            >
+              <motion.div
+                animate={{ rotate: filterOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
+              </motion.div>
+            </button>
+          </div>
         </div>
-        <button
-          onClick={() => { setSearchOpen(true); setTimeout(() => inputRef.current?.focus(), 100); }}
-          className="flex items-center text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors ml-4"
-          data-testid="button-add-person"
-        >
-          <Plus className="w-4 h-4" strokeWidth={1.5} />
-        </button>
       </div>
+
+      {/* Search results dropdown — scrollable */}
+      <AnimatePresence>
+        {query.trim().length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden border-b border-[#1A1A1A]/8"
+          >
+            <div className="max-h-[52vh] overflow-y-auto">
+              {results.map((r) => {
+                const alreadyAdded = addedIds.has(r.id);
+                return (
+                  <div
+                    key={r.id}
+                    className="flex items-center gap-3 px-5 py-3 border-b border-[#1A1A1A]/7"
+                  >
+                    {r.profile_path ? (
+                      <img
+                        src={profileUrl(r.profile_path, "w92")}
+                        alt=""
+                        className="w-8 h-[48px] object-cover object-top flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-[48px] bg-[#1A1A1A]/6 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-serif text-[17px] font-light text-[#1A1A1A] leading-tight truncate">
+                        {r.name}
+                      </p>
+                      <p className="text-[10px] text-[#1A1A1A]/35 mt-0.5 tracking-wide truncate">
+                        {r.known_for_department}
+                        {r.known_for?.length > 0 && (
+                          <>{"  ·  "}{r.known_for.slice(0, 2).map((k) => k.title || k.name).filter(Boolean).join(", ")}</>
+                        )}
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => handleQuickAdd(r, e)}
+                      disabled={alreadyAdded || loadingId === r.id}
+                      className="flex-shrink-0 w-7 h-7 flex items-center justify-center transition-colors"
+                      data-testid={`result-person-${r.id}`}
+                    >
+                      {loadingId === r.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/25" strokeWidth={1.5} />
+                      ) : alreadyAdded ? (
+                        <span className="text-[9px] text-[#1A1A1A]/25">✓</span>
+                      ) : (
+                        <Plus className="w-3.5 h-3.5 text-[#1A1A1A]/40 hover:text-[#1A1A1A]" strokeWidth={1.5} />
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Filter panel */}
+      <AnimatePresence>
+        {filterOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden border-b border-[#1A1A1A]/8"
+          >
+            <div className="px-5 py-3.5">
+              <div className="flex items-center gap-2.5">
+                <Search className="w-3 h-3 text-[#1A1A1A]/25 flex-shrink-0" strokeWidth={2} />
+                <input
+                  type="text"
+                  placeholder="Filter by name or department…"
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  className="bg-transparent text-[12px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] w-full"
+                />
+              </div>
+
+              {/* Department suggestions */}
+              {filterQuery.length === 0 && allDepartments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2.5">
+                  {allDepartments.slice(0, 8).map((dept) => (
+                    <button
+                      key={dept}
+                      onClick={() => setFilterQuery(dept)}
+                      className="text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/40 hover:border-[#1A1A1A]/50 hover:text-[#1A1A1A]/70 transition-colors"
+                    >
+                      {dept}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-nav">
@@ -135,72 +253,6 @@ export default function People() {
           </ul>
         )}
       </div>
-
-      {/* Search Overlay */}
-      <AnimatePresence>
-        {searchOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 bg-[#F5F2EE] flex flex-col"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="px-5 pt-14 pb-4 border-b border-[#1A1A1A]/10">
-              <div className="flex items-center gap-3">
-                <Search className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0" strokeWidth={1.5} />
-                <input
-                  ref={inputRef}
-                  type="text"
-                  placeholder="Search people…"
-                  value={query}
-                  onChange={(e) => setQuery(e.target.value)}
-                  className="flex-1 bg-transparent text-[18px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
-                  data-testid="input-search-person"
-                />
-                {isSearching ? (
-                  <Loader2 className="w-4 h-4 animate-spin text-[#1A1A1A]/25" strokeWidth={1.5} />
-                ) : (
-                  <button
-                    onClick={() => { setSearchOpen(false); setQuery(""); setResults([]); }}
-                    className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium"
-                  >
-                    Cancel
-                  </button>
-                )}
-              </div>
-            </div>
-
-            <div className="flex-1 overflow-y-auto hide-scrollbar">
-              {results.map((r) => (
-                <button
-                  key={r.id}
-                  className="w-full flex items-center gap-4 px-5 py-4 border-b border-[#1A1A1A]/7 text-left active:bg-[#1A1A1A]/[0.02]"
-                  onClick={() => handleAdd(r)}
-                  data-testid={`result-person-${r.id}`}
-                >
-                  {r.profile_path ? (
-                    <img
-                      src={profileUrl(r.profile_path, "w92")}
-                      alt=""
-                      className="w-10 h-[60px] object-cover object-top flex-shrink-0"
-                    />
-                  ) : (
-                    <div className="w-10 h-[60px] bg-[#1A1A1A]/6 flex-shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-serif text-[20px] font-light text-[#1A1A1A] leading-tight">{r.name}</p>
-                    <p className="text-[11px] text-[#1A1A1A]/35 mt-1 tracking-wide">{r.known_for_department}</p>
-                    <p className="text-[11px] text-[#1A1A1A]/25 mt-0.5 tracking-wide truncate">
-                      {(r.known_for || []).map((k) => k.title || k.name).filter(Boolean).slice(0, 3).join(", ")}
-                    </p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {selectedItem && (

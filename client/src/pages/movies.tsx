@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronDown, Loader2, Link } from "lucide-react";
+import { ChevronDown, Loader2, Link, Plus, Search } from "lucide-react";
 import { useMovies, type MovieItem } from "@/hooks/use-library";
 import {
   searchMulti,
@@ -43,7 +43,7 @@ export default function Movies() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loadingId, setLoadingId] = useState<number | null>(null);
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "genre" | "director">("all");
@@ -115,14 +115,13 @@ export default function Movies() {
     add(item);
   };
 
-  const handleAdd = async (result: SearchResult) => {
-    setLoading(true);
+  const handleQuickAdd = async (result: SearchResult, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setLoadingId(result.id);
     try {
       await buildAndSave(result.media_type, result.id, result);
-      setQuery("");
-      setResults([]);
     } finally {
-      setLoading(false);
+      setLoadingId(null);
     }
   };
 
@@ -133,7 +132,7 @@ export default function Movies() {
       setUrlError("Paste a valid TMDB URL, e.g. themoviedb.org/movie/12345");
       return;
     }
-    setLoading(true);
+    setLoadingId(-1);
     try {
       await buildAndSave(parsed.type, parsed.id);
       setUrlMode(false);
@@ -143,7 +142,7 @@ export default function Movies() {
     } catch {
       setUrlError("Couldn't fetch that title. Check the URL and try again.");
     } finally {
-      setLoading(false);
+      setLoadingId(null);
     }
   };
 
@@ -179,9 +178,12 @@ export default function Movies() {
     }
   }, [items]);
 
+  const addedIds = new Set(items.map((i) => i.tmdbId));
+
   return (
     <div className="flex flex-col h-full bg-[#F5F2EE]">
-      {/* Header */}
+
+      {/* Header — no bottom border, count inline */}
       <div className="px-5 pt-14 pb-0">
         <div className="flex items-baseline justify-between">
           <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">
@@ -191,26 +193,21 @@ export default function Movies() {
             {items.length}
           </span>
         </div>
-        <div className="h-px bg-[#1A1A1A]/10 mt-5" />
       </div>
 
-      {/* Search / Add bar (was filter bar) */}
+      {/* Search / Add bar */}
       <div className="px-5 py-3.5 border-b border-[#1A1A1A]/8">
         <div className="flex items-center gap-3">
-          <Search
-            className="w-3.5 h-3.5 text-[#1A1A1A]/25 flex-shrink-0"
-            strokeWidth={2}
-          />
           <AnimatePresence mode="wait" initial={false}>
             {!urlMode ? (
               <motion.input
                 key="search"
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search films & TV to add…"
+                placeholder="Search"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="flex-1 bg-transparent text-[13px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
+                className="flex-1 bg-transparent font-serif text-[28px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] leading-none tracking-tight"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -227,7 +224,7 @@ export default function Movies() {
                   setUrlError("");
                 }}
                 onKeyDown={(e) => e.key === "Enter" && handleUrlAdd()}
-                className="flex-1 bg-transparent text-[13px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
+                className="flex-1 bg-transparent text-[15px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] leading-none"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -235,93 +232,37 @@ export default function Movies() {
             )}
           </AnimatePresence>
 
-          {isSearching || loading ? (
-            <Loader2
-              className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/25 flex-shrink-0"
-              strokeWidth={1.5}
-            />
-          ) : urlMode ? (
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {isSearching || loadingId !== null ? (
+              <Loader2
+                className="w-4 h-4 animate-spin text-[#1A1A1A]/25"
+                strokeWidth={1.5}
+              />
+            ) : urlMode ? (
+              <button
+                onClick={handleUrlAdd}
+                className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A] font-semibold"
+              >
+                Fetch
+              </button>
+            ) : null}
+
+            {/* Chevron opens filter panel */}
             <button
-              onClick={handleUrlAdd}
-              className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A] font-semibold flex-shrink-0"
+              onClick={() => setFilterOpen((v) => !v)}
+              className={`flex items-center transition-colors ${
+                filterOpen ? "text-[#1A1A1A]" : "text-[#1A1A1A]/40 hover:text-[#1A1A1A]"
+              }`}
             >
-              Fetch
+              <motion.div
+                animate={{ rotate: filterOpen ? 180 : 0 }}
+                transition={{ duration: 0.2 }}
+              >
+                <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
+              </motion.div>
             </button>
-          ) : null}
-
-          {/* Chevron opens filter panel */}
-          <button
-            onClick={() => setFilterOpen((v) => !v)}
-            className={`flex items-center transition-colors flex-shrink-0 ${
-              filterOpen ? "text-[#1A1A1A]" : "text-[#1A1A1A]/40 hover:text-[#1A1A1A]"
-            }`}
-          >
-            <motion.div
-              animate={{ rotate: filterOpen ? 180 : 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
-            </motion.div>
-          </button>
+          </div>
         </div>
-
-        {/* Inline search results */}
-        <AnimatePresence>
-          {!urlMode && query.trim().length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="overflow-hidden"
-            >
-              <div className="mt-2 -mx-5 border-t border-[#1A1A1A]/8">
-                {results.map((r) => (
-                  <button
-                    key={r.id}
-                    className="w-full flex items-center gap-3 px-5 py-3 border-b border-[#1A1A1A]/7 text-left active:bg-[#1A1A1A]/[0.02]"
-                    onClick={() => handleAdd(r)}
-                  >
-                    {r.poster_path ? (
-                      <img
-                        src={posterUrl(r.poster_path, "w92")}
-                        alt=""
-                        className="w-8 h-[48px] object-cover flex-shrink-0"
-                      />
-                    ) : (
-                      <div className="w-8 h-[48px] bg-[#1A1A1A]/6 flex-shrink-0" />
-                    )}
-                    <div className="flex-1 min-w-0">
-                      <p className="font-serif text-[17px] font-light text-[#1A1A1A] leading-tight truncate">
-                        {r.title || r.name}
-                      </p>
-                      <p className="text-[10px] text-[#1A1A1A]/35 mt-0.5 tracking-wide">
-                        {(r.release_date || r.first_air_date || "").slice(0, 4)}
-                        {"  ·  "}
-                        <span className="uppercase text-[9px] tracking-[0.15em]">
-                          {r.media_type === "tv" ? "TV" : "Film"}
-                        </span>
-                      </p>
-                    </div>
-                  </button>
-                ))}
-                {query.trim().length > 1 && (
-                  <div className="px-5 py-3">
-                    <button
-                      onClick={() => {
-                        setUrlMode(true);
-                        setTimeout(() => urlInputRef.current?.focus(), 50);
-                      }}
-                      className="flex items-center gap-2 text-[11px] text-[#1A1A1A]/35 hover:text-[#1A1A1A]/60 transition-colors"
-                    >
-                      <Link className="w-3 h-3" strokeWidth={1.5} />
-                      Can't find it? Paste a TMDB URL instead
-                    </button>
-                  </div>
-                )}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* URL mode error */}
         {urlMode && urlError && (
@@ -345,6 +286,79 @@ export default function Movies() {
           </div>
         )}
       </div>
+
+      {/* Search results dropdown — scrollable */}
+      <AnimatePresence>
+        {!urlMode && query.trim().length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="overflow-hidden border-b border-[#1A1A1A]/8"
+          >
+            <div className="max-h-[52vh] overflow-y-auto">
+              {results.map((r) => {
+                const alreadyAdded = addedIds.has(r.id);
+                return (
+                  <div
+                    key={r.id}
+                    className="flex items-center gap-3 px-5 py-3 border-b border-[#1A1A1A]/7"
+                  >
+                    {r.poster_path ? (
+                      <img
+                        src={posterUrl(r.poster_path, "w92")}
+                        alt=""
+                        className="w-8 h-[48px] object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-[48px] bg-[#1A1A1A]/6 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-serif text-[17px] font-light text-[#1A1A1A] leading-tight truncate">
+                        {r.title || r.name}
+                      </p>
+                      <p className="text-[10px] text-[#1A1A1A]/35 mt-0.5 tracking-wide">
+                        {(r.release_date || r.first_air_date || "").slice(0, 4)}
+                        {"  ·  "}
+                        <span className="uppercase text-[9px] tracking-[0.15em]">
+                          {r.media_type === "tv" ? "TV" : "Film"}
+                        </span>
+                      </p>
+                    </div>
+                    <button
+                      onClick={(e) => handleQuickAdd(r, e)}
+                      disabled={alreadyAdded || loadingId === r.id}
+                      className="flex-shrink-0 w-7 h-7 flex items-center justify-center transition-colors"
+                    >
+                      {loadingId === r.id ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/25" strokeWidth={1.5} />
+                      ) : alreadyAdded ? (
+                        <span className="text-[9px] text-[#1A1A1A]/25">✓</span>
+                      ) : (
+                        <Plus className="w-3.5 h-3.5 text-[#1A1A1A]/40 hover:text-[#1A1A1A]" strokeWidth={1.5} />
+                      )}
+                    </button>
+                  </div>
+                );
+              })}
+              {query.trim().length > 1 && (
+                <div className="px-5 py-3">
+                  <button
+                    onClick={() => {
+                      setUrlMode(true);
+                      setTimeout(() => urlInputRef.current?.focus(), 50);
+                    }}
+                    className="flex items-center gap-2 text-[11px] text-[#1A1A1A]/35 hover:text-[#1A1A1A]/60 transition-colors"
+                  >
+                    <Link className="w-3 h-3" strokeWidth={1.5} />
+                    Can't find it? Paste a TMDB URL instead
+                  </button>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Filter panel (chevron-triggered, collapsible) */}
       <AnimatePresence>
@@ -371,7 +385,6 @@ export default function Movies() {
                 />
               </div>
 
-              {/* Filter type pills */}
               {filterQuery.length > 0 && (
                 <div className="flex gap-2 mt-2.5">
                   {(["all", "genre", "director"] as const).map((type) => (
@@ -390,7 +403,6 @@ export default function Movies() {
                 </div>
               )}
 
-              {/* Genre suggestions */}
               {filterType === "genre" && filterQuery.length === 0 && (
                 <div className="flex flex-wrap gap-2 mt-2.5">
                   {allGenres.slice(0, 8).map((genre) => (
@@ -405,7 +417,6 @@ export default function Movies() {
                 </div>
               )}
 
-              {/* Director suggestions */}
               {filterType === "director" && filterQuery.length === 0 && (
                 <div className="flex flex-wrap gap-2 mt-2.5">
                   {allDirectors.slice(0, 6).map((director) => (
