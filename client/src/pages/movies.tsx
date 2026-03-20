@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, Plus, Loader2, Link } from "lucide-react";
+import { Search, ChevronDown, Loader2, Link } from "lucide-react";
 import { useMovies, type MovieItem } from "@/hooks/use-library";
 import {
   searchMulti,
@@ -43,8 +43,8 @@ export default function Movies() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [filterOpen, setFilterOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "genre" | "director">(
     "all",
@@ -54,7 +54,7 @@ export default function Movies() {
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -124,7 +124,6 @@ export default function Movies() {
     setLoading(true);
     try {
       await buildAndSave(result.media_type, result.id, result);
-      setSearchOpen(false);
       setQuery("");
       setResults([]);
     } finally {
@@ -142,9 +141,10 @@ export default function Movies() {
     setLoading(true);
     try {
       await buildAndSave(parsed.type, parsed.id);
-      setSearchOpen(false);
       setUrlMode(false);
       setUrlInput("");
+      setQuery("");
+      setResults([]);
     } catch {
       setUrlError("Couldn't fetch that title. Check the URL and try again.");
     } finally {
@@ -152,25 +152,21 @@ export default function Movies() {
     }
   };
 
-  const closeSearch = () => {
-    setSearchOpen(false);
-    setQuery("");
-    setResults([]);
-    setUrlMode(false);
-    setUrlInput("");
-    setUrlError("");
-  };
+  const allGenres = Array.from(
+    new Set(items.flatMap((i) => (i.genre || "").split(", ").filter(Boolean))),
+  ).sort();
+  const allDirectors = Array.from(
+    new Set(items.map((i) => i.director).filter(Boolean)),
+  ).sort() as string[];
 
-  const allGenres = [
-    ...new Set(
-      items.flatMap((i) => (i.genre || "").split(", ").filter(Boolean)),
-    ),
-  ].sort();
-  const allDirectors = [
-    ...new Set(items.map((i) => i.director).filter(Boolean)),
-  ].sort() as string[];
+  // Sort by recently added first
+  const sortedItems = [...items].sort((a, b) => {
+    const dateA = a.dateAdded ? new Date(a.dateAdded).getTime() : 0;
+    const dateB = b.dateAdded ? new Date(b.dateAdded).getTime() : 0;
+    return dateB - dateA;
+  });
 
-  const filtered = items.filter((i) => {
+  const filtered = sortedItems.filter((i) => {
     if (!filterQuery) return true;
     const q = filterQuery.toLowerCase();
     if (filterType === "genre") return i.genre.toLowerCase().includes(q);
@@ -204,86 +200,234 @@ export default function Movies() {
         <div className="h-px bg-[#1A1A1A]/10 mt-5" />
       </div>
 
-      {/* Filter + Add */}
+      {/* Search bar (add to library) */}
       <div className="px-5 py-3.5 border-b border-[#1A1A1A]/8">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5 flex-1">
-            <Search
-              className="w-3 h-3 text-[#1A1A1A]/25 flex-shrink-0"
-              strokeWidth={2}
+        <div className="flex items-center gap-3">
+          <Search
+            className="w-3.5 h-3.5 text-[#1A1A1A]/25 flex-shrink-0"
+            strokeWidth={2}
+          />
+          <AnimatePresence mode="wait" initial={false}>
+            {!urlMode ? (
+              <motion.input
+                key="search"
+                ref={searchInputRef}
+                type="text"
+                placeholder="Search films & TV to add…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                className="flex-1 bg-transparent text-[13px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+            ) : (
+              <motion.input
+                key="url"
+                ref={urlInputRef}
+                type="url"
+                placeholder="themoviedb.org/movie/…"
+                value={urlInput}
+                onChange={(e) => {
+                  setUrlInput(e.target.value);
+                  setUrlError("");
+                }}
+                onKeyDown={(e) => e.key === "Enter" && handleUrlAdd()}
+                className="flex-1 bg-transparent text-[13px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+              />
+            )}
+          </AnimatePresence>
+          {isSearching || loading ? (
+            <Loader2
+              className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/25 flex-shrink-0"
+              strokeWidth={1.5}
             />
-            <input
-              type="text"
-              placeholder="Filter by title, genre, director…"
-              value={filterQuery}
-              onChange={(e) => setFilterQuery(e.target.value)}
-              className="bg-transparent text-[12px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] w-full"
-            />
-          </div>
+          ) : urlMode ? (
+            <button
+              onClick={handleUrlAdd}
+              className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A] font-semibold flex-shrink-0"
+            >
+              Fetch
+            </button>
+          ) : null}
           <button
-            onClick={() => {
-              setSearchOpen(true);
-              setTimeout(() => inputRef.current?.focus(), 100);
-            }}
-            className="flex items-center text-[#1A1A1A]/60 hover:text-[#1A1A1A] transition-colors"
+            onClick={() => setFilterOpen((v) => !v)}
+            className={`flex items-center text-[#1A1A1A]/40 hover:text-[#1A1A1A] transition-colors flex-shrink-0 ${filterOpen ? "text-[#1A1A1A]" : ""}`}
           >
-            <Plus className="w-4 h-4" strokeWidth={1.5} />
+            <motion.div
+              animate={{ rotate: filterOpen ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <ChevronDown className="w-4 h-4" strokeWidth={1.5} />
+            </motion.div>
           </button>
         </div>
 
-        {/* Filter type pills */}
-        {filterQuery.length > 0 && (
-          <div className="flex gap-2 mt-2.5">
-            {(["all", "genre", "director"] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setFilterType(type)}
-                className={`text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border transition-colors ${
-                  filterType === type
-                    ? "border-[#1A1A1A] text-[#1A1A1A]"
-                    : "border-[#1A1A1A]/20 text-[#1A1A1A]/35"
-                }`}
-              >
-                {type === "all"
-                  ? "All"
-                  : type === "genre"
-                    ? "Genre"
-                    : "Director"}
-              </button>
-            ))}
-          </div>
+        {/* Inline search results */}
+        <AnimatePresence>
+          {!urlMode && query.trim().length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="mt-2 -mx-5 border-t border-[#1A1A1A]/8">
+                {results.map((r) => (
+                  <button
+                    key={r.id}
+                    className="w-full flex items-center gap-3 px-5 py-3 border-b border-[#1A1A1A]/7 text-left active:bg-[#1A1A1A]/[0.02]"
+                    onClick={() => handleAdd(r)}
+                  >
+                    {r.poster_path ? (
+                      <img
+                        src={posterUrl(r.poster_path, "w92")}
+                        alt=""
+                        className="w-8 h-[48px] object-cover flex-shrink-0"
+                      />
+                    ) : (
+                      <div className="w-8 h-[48px] bg-[#1A1A1A]/6 flex-shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="font-serif text-[17px] font-light text-[#1A1A1A] leading-tight truncate">
+                        {r.title || r.name}
+                      </p>
+                      <p className="text-[10px] text-[#1A1A1A]/35 mt-0.5 tracking-wide">
+                        {(r.release_date || r.first_air_date || "").slice(0, 4)}
+                        {"  ·  "}
+                        <span className="uppercase text-[9px] tracking-[0.15em]">
+                          {r.media_type === "tv" ? "TV" : "Film"}
+                        </span>
+                      </p>
+                    </div>
+                  </button>
+                ))}
+                {query.trim().length > 1 && (
+                  <div className="px-5 py-3">
+                    <button
+                      onClick={() => {
+                        setUrlMode(true);
+                        setTimeout(() => urlInputRef.current?.focus(), 50);
+                      }}
+                      className="flex items-center gap-2 text-[11px] text-[#1A1A1A]/35 hover:text-[#1A1A1A]/60 transition-colors"
+                    >
+                      <Link className="w-3 h-3" strokeWidth={1.5} />
+                      Can't find it? Paste a TMDB URL instead
+                    </button>
+                  </div>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* URL mode error */}
+        {urlMode && urlError && (
+          <p className="text-[12px] text-[#8B2635] mt-2">{urlError}</p>
         )}
 
-        {/* Genre suggestions */}
-        {filterType === "genre" && filterQuery.length === 0 && (
-          <div className="flex flex-wrap gap-2 mt-2.5">
-            {allGenres.slice(0, 8).map((genre) => (
-              <button
-                key={genre}
-                onClick={() => setFilterQuery(genre)}
-                className="text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/40 hover:border-[#1A1A1A]/50 hover:text-[#1A1A1A]/70 transition-colors"
-              >
-                {genre}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Director suggestions */}
-        {filterType === "director" && filterQuery.length === 0 && (
-          <div className="flex flex-wrap gap-2 mt-2.5">
-            {allDirectors.slice(0, 6).map((director) => (
-              <button
-                key={director}
-                onClick={() => setFilterQuery(director)}
-                className="text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/40 hover:border-[#1A1A1A]/50 hover:text-[#1A1A1A]/70 transition-colors"
-              >
-                {director}
-              </button>
-            ))}
+        {/* URL mode back link */}
+        {urlMode && (
+          <div className="mt-2">
+            <button
+              onClick={() => {
+                setUrlMode(false);
+                setUrlInput("");
+                setUrlError("");
+                setTimeout(() => searchInputRef.current?.focus(), 50);
+              }}
+              className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium"
+            >
+              ← Back to search
+            </button>
           </div>
         )}
       </div>
+
+      {/* Filter panel (collapsible) */}
+      <AnimatePresence>
+        {filterOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            className="overflow-hidden border-b border-[#1A1A1A]/8"
+          >
+            <div className="px-5 py-3.5">
+              <div className="flex items-center gap-2.5">
+                <Search
+                  className="w-3 h-3 text-[#1A1A1A]/25 flex-shrink-0"
+                  strokeWidth={2}
+                />
+                <input
+                  type="text"
+                  placeholder="Filter by title, genre, director…"
+                  value={filterQuery}
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  className="bg-transparent text-[12px] tracking-wide placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A] w-full"
+                />
+              </div>
+
+              {/* Filter type pills */}
+              {filterQuery.length > 0 && (
+                <div className="flex gap-2 mt-2.5">
+                  {(["all", "genre", "director"] as const).map((type) => (
+                    <button
+                      key={type}
+                      onClick={() => setFilterType(type)}
+                      className={`text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border transition-colors ${
+                        filterType === type
+                          ? "border-[#1A1A1A] text-[#1A1A1A]"
+                          : "border-[#1A1A1A]/20 text-[#1A1A1A]/35"
+                      }`}
+                    >
+                      {type === "all"
+                        ? "All"
+                        : type === "genre"
+                          ? "Genre"
+                          : "Director"}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Genre suggestions */}
+              {filterType === "genre" && filterQuery.length === 0 && (
+                <div className="flex flex-wrap gap-2 mt-2.5">
+                  {allGenres.slice(0, 8).map((genre) => (
+                    <button
+                      key={genre}
+                      onClick={() => setFilterQuery(genre)}
+                      className="text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/40 hover:border-[#1A1A1A]/50 hover:text-[#1A1A1A]/70 transition-colors"
+                    >
+                      {genre}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Director suggestions */}
+              {filterType === "director" && filterQuery.length === 0 && (
+                <div className="flex flex-wrap gap-2 mt-2.5">
+                  {allDirectors.slice(0, 6).map((director) => (
+                    <button
+                      key={director}
+                      onClick={() => setFilterQuery(director)}
+                      className="text-[9px] uppercase tracking-[0.2em] px-2.5 py-1 border border-[#1A1A1A]/20 text-[#1A1A1A]/40 hover:border-[#1A1A1A]/50 hover:text-[#1A1A1A]/70 transition-colors"
+                    >
+                      {director}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* List */}
       <div className="flex-1 overflow-y-auto hide-scrollbar pb-nav">
@@ -339,184 +483,6 @@ export default function Movies() {
           </ul>
         )}
       </div>
-
-      {/* Search Overlay */}
-      <AnimatePresence>
-        {searchOpen && (
-          <motion.div
-            className="fixed inset-0 z-40 bg-[#F5F2EE] flex flex-col"
-            initial={{ opacity: 0, y: 16 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 16 }}
-            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <div className="px-5 pt-14 pb-4 border-b border-[#1A1A1A]/10">
-              <AnimatePresence mode="wait" initial={false}>
-                {!urlMode ? (
-                  <motion.div
-                    key="search"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center gap-3"
-                  >
-                    <Search
-                      className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0"
-                      strokeWidth={1.5}
-                    />
-                    <input
-                      ref={inputRef}
-                      type="text"
-                      placeholder="Search films & TV…"
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      className="flex-1 bg-transparent text-[18px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
-                    />
-                    {isSearching ? (
-                      <Loader2
-                        className="w-4 h-4 animate-spin text-[#1A1A1A]/25"
-                        strokeWidth={1.5}
-                      />
-                    ) : (
-                      <button
-                        onClick={closeSearch}
-                        className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium"
-                      >
-                        Cancel
-                      </button>
-                    )}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="url"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    className="flex items-center gap-3"
-                  >
-                    <Link
-                      className="w-4 h-4 text-[#1A1A1A]/30 flex-shrink-0"
-                      strokeWidth={1.5}
-                    />
-                    <input
-                      ref={urlInputRef}
-                      type="url"
-                      placeholder="themoviedb.org/movie/…"
-                      value={urlInput}
-                      onChange={(e) => {
-                        setUrlInput(e.target.value);
-                        setUrlError("");
-                      }}
-                      onKeyDown={(e) => e.key === "Enter" && handleUrlAdd()}
-                      className="flex-1 bg-transparent text-[16px] font-light placeholder:text-[#1A1A1A]/20 focus:outline-none text-[#1A1A1A]"
-                    />
-                    {loading ? (
-                      <Loader2
-                        className="w-4 h-4 animate-spin text-[#1A1A1A]/25"
-                        strokeWidth={1.5}
-                      />
-                    ) : (
-                      <button
-                        onClick={handleUrlAdd}
-                        className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A] font-semibold"
-                      >
-                        Fetch
-                      </button>
-                    )}
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="flex-1 overflow-y-auto hide-scrollbar">
-              {urlMode && (
-                <div className="px-5 pt-6">
-                  {urlError && (
-                    <p className="text-[12px] text-[#8B2635] mb-4">
-                      {urlError}
-                    </p>
-                  )}
-                  <p className="text-[12px] text-[#1A1A1A]/35 leading-relaxed">
-                    Go to{" "}
-                    <span className="underline underline-offset-2">
-                      themoviedb.org
-                    </span>
-                    , find the film or TV show, then paste the page URL here.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setUrlMode(false);
-                      setTimeout(() => inputRef.current?.focus(), 50);
-                    }}
-                    className="mt-8 text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/35 font-medium"
-                  >
-                    ← Back to search
-                  </button>
-                </div>
-              )}
-              {!urlMode && (
-                <>
-                  {loading && (
-                    <div className="flex justify-center py-14">
-                      <Loader2
-                        className="w-5 h-5 animate-spin text-[#1A1A1A]/30"
-                        strokeWidth={1.5}
-                      />
-                    </div>
-                  )}
-                  {!loading &&
-                    results.map((r) => (
-                      <button
-                        key={r.id}
-                        className="w-full flex items-center gap-4 px-5 py-4 border-b border-[#1A1A1A]/7 text-left active:bg-[#1A1A1A]/[0.02]"
-                        onClick={() => handleAdd(r)}
-                      >
-                        {r.poster_path ? (
-                          <img
-                            src={posterUrl(r.poster_path, "w92")}
-                            alt=""
-                            className="w-10 h-[60px] object-cover flex-shrink-0"
-                          />
-                        ) : (
-                          <div className="w-10 h-[60px] bg-[#1A1A1A]/6 flex-shrink-0" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <p className="font-serif text-[20px] font-light text-[#1A1A1A] leading-tight">
-                            {r.title || r.name}
-                          </p>
-                          <p className="text-[11px] text-[#1A1A1A]/35 mt-1 tracking-wide">
-                            {(r.release_date || r.first_air_date || "").slice(
-                              0,
-                              4,
-                            )}
-                            {"  ·  "}
-                            <span className="uppercase text-[9px] tracking-[0.15em]">
-                              {r.media_type === "tv" ? "TV" : "Film"}
-                            </span>
-                          </p>
-                        </div>
-                      </button>
-                    ))}
-                  {!loading && query.trim().length > 1 && (
-                    <div className="px-5 pt-6 pb-4">
-                      <button
-                        onClick={() => {
-                          setUrlMode(true);
-                          setTimeout(() => urlInputRef.current?.focus(), 50);
-                        }}
-                        className="flex items-center gap-2 text-[11px] text-[#1A1A1A]/35 hover:text-[#1A1A1A]/60 transition-colors"
-                      >
-                        <Link className="w-3 h-3" strokeWidth={1.5} />
-                        Can't find it? Paste a TMDB URL instead
-                      </button>
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {selectedItem && (
