@@ -352,12 +352,115 @@ function DirectorFilms({
   );
 }
 
-function PersonCard({
+// Full-screen person profile view (no auto-add)
+function PersonProfileView({
   person,
   onClose,
 }: {
   person: PersonPreview;
   onClose: () => void;
+}) {
+  const { items, add } = usePeople();
+  const alreadySaved = items.some((p) => p.tmdbId === person.id);
+
+  const handleSave = () => {
+    if (alreadySaved) return;
+    const knownForTitles = (person.known_for || [])
+      .map((k) => k.title || k.name || "")
+      .filter(Boolean);
+    add({
+      id: `person-${person.id}-${Date.now()}`,
+      name: person.name,
+      photoUrl: profileUrl(person.profile_path),
+      knownFor: person.known_for_department || "",
+      knownForTitles,
+      tmdbId: person.id,
+      dateAdded: new Date().toISOString(),
+    });
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-[70] bg-[#F5F2EE] flex flex-col overflow-hidden"
+      initial={{ opacity: 0, y: 24 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: 24 }}
+      transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {/* Toolbar */}
+      <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
+        <button
+          onClick={onClose}
+          className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 font-medium"
+        >
+          ← Back
+        </button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto hide-scrollbar">
+        {person.profile_path && (
+          <div className="flex justify-start px-5 pt-8 pb-0">
+            <img
+              src={profileUrl(person.profile_path, "w342")}
+              alt={person.name}
+              className="w-28 h-36 object-cover object-top shadow-sm"
+            />
+          </div>
+        )}
+        <div className="px-5 pt-6 pb-2">
+          <p className="text-[9px] uppercase tracking-[0.25em] text-[#8B2635] font-medium mb-3">
+            {person.known_for_department || "Person"}
+          </p>
+          <h1 className="font-serif text-[32px] font-light text-[#1A1A1A] leading-tight tracking-tight">
+            {person.name}
+          </h1>
+        </div>
+        <div className="px-5 mt-4">
+          {person.known_for?.length > 0 && (
+            <div className="py-4 border-b border-[#1A1A1A]/7">
+              <p className="text-[9px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 mb-1.5 font-medium">
+                Known For
+              </p>
+              <p className="text-[15px] font-light text-[#1A1A1A] leading-relaxed">
+                {person.known_for
+                  .map((k) => k.title || k.name)
+                  .filter(Boolean)
+                  .join(", ")}
+              </p>
+            </div>
+          )}
+          <div className="py-4 border-b border-[#1A1A1A]/7">
+            <button
+              onClick={handleSave}
+              disabled={alreadySaved}
+              className={`flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${
+                alreadySaved ? "text-[#1A1A1A]/25" : "text-[#1A1A1A]"
+              }`}
+            >
+              {alreadySaved ? (
+                <>
+                  <Check className="w-3 h-3" strokeWidth={2} />
+                  Saved to People
+                </>
+              ) : (
+                "+ Save to People"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function PersonCard({
+  person,
+  onClose,
+  onViewProfile,
+}: {
+  person: PersonPreview;
+  onClose: () => void;
+  onViewProfile: () => void;
 }) {
   const { items, add } = usePeople();
   const [saving, setSaving] = useState(false);
@@ -402,11 +505,20 @@ function PersonCard({
       >
         <div className="flex items-start gap-4 px-5 pt-6 pb-5">
           {person.profile_path ? (
-            <img
-              src={profileUrl(person.profile_path, "w185")}
-              alt={person.name}
-              className="w-16 h-20 object-cover object-top flex-shrink-0"
-            />
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onViewProfile();
+              }}
+              className="flex-shrink-0 active:opacity-70 transition-opacity"
+              aria-label="View full profile"
+            >
+              <img
+                src={profileUrl(person.profile_path, "w185")}
+                alt={person.name}
+                className="w-16 h-20 object-cover object-top"
+              />
+            </button>
           ) : (
             <div className="w-16 h-20 bg-[#1A1A1A]/8 flex-shrink-0" />
           )}
@@ -464,6 +576,7 @@ export function DetailView({
   );
   const [loadingPerson, setLoadingPerson] = useState<string | null>(null);
   const [directorTmdbId, setDirectorTmdbId] = useState<number | null>(null);
+  const [profilePerson, setProfilePerson] = useState<PersonPreview | null>(null);
 
   useEffect(() => {
     async function fetchDirectorId() {
@@ -722,6 +835,19 @@ export function DetailView({
               <PersonCard
                 person={personPreview}
                 onClose={() => setPersonPreview(null)}
+                onViewProfile={() => {
+                  setProfilePerson(personPreview);
+                  setPersonPreview(null);
+                }}
+              />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {profilePerson && (
+              <PersonProfileView
+                person={profilePerson}
+                onClose={() => setProfilePerson(null)}
               />
             )}
           </AnimatePresence>
