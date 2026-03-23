@@ -43,6 +43,12 @@ function isPerson(item: Item): item is PersonItem {
   return "knownFor" in item;
 }
 
+function sectionLabel(type: "movie" | "book" | "person"): string {
+  if (type === "movie") return "Films & TV";
+  if (type === "book") return "Books";
+  return "People";
+}
+
 function MetaRow({ label, value }: { label: string; value: string }) {
   if (!value) return null;
   return (
@@ -388,7 +394,7 @@ function PersonProfileView({
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
+      <div className="relative flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
         <button
           onClick={onClose}
           className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 font-medium"
@@ -659,13 +665,19 @@ export function DetailView({
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
           {/* Toolbar */}
-          <div className="flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
+          <div className="relative flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
             <button
               onClick={onClose}
               className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 font-medium"
             >
               ← Back
             </button>
+
+            {/* Section label — centred, serif, matches THE LIBRARY style */}
+            <span className="absolute left-1/2 -translate-x-1/2 font-serif text-[11px] font-light tracking-[0.25em] text-[#1A1A1A]/40 uppercase pointer-events-none select-none">
+              {sectionLabel(type)}
+            </span>
+
             <div className="flex items-center gap-3">
               {loadingPerson && (
                 <Loader2
