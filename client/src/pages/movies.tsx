@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Loader2, Link, Plus, Search } from "lucide-react";
+import { ChevronDown, Loader2, Link, Plus, Search, Check } from "lucide-react";
 import { useMovies, type MovieItem } from "@/hooks/use-library";
 import {
   searchMulti,
@@ -21,6 +21,12 @@ interface SearchResult {
   overview: string;
 }
 
+interface PosterPreview {
+  result: SearchResult;
+  detail: any;
+  director: string;
+}
+
 function parseTmdbUrl(
   url: string,
 ): { type: "movie" | "tv"; id: number } | null {
@@ -38,6 +44,113 @@ function RatingDisplay({ rating }: { rating?: number }) {
   );
 }
 
+// Bottom sheet preview for a search result — no auto-add
+function SearchPreviewSheet({
+  preview,
+  alreadySaved,
+  onClose,
+  onAdd,
+}: {
+  preview: PosterPreview;
+  alreadySaved: boolean;
+  onClose: () => void;
+  onAdd: () => Promise<void>;
+}) {
+  const [isAdding, setIsAdding] = useState(false);
+  const { result, detail, director } = preview;
+  const title = detail.title || detail.name || result.title || result.name || "";
+  const year = (detail.release_date || detail.first_air_date || "").slice(0, 4);
+  const posterPath = detail.poster_path || result.poster_path;
+  const overview = detail.overview || result.overview || "";
+  const genre = (detail.genres || []).map((g: any) => g.name).join(", ");
+
+  const handleAdd = async () => {
+    if (isAdding || alreadySaved) return;
+    setIsAdding(true);
+    await onAdd();
+    setIsAdding(false);
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-60 flex items-end"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-[#1A1A1A]/20" />
+      <motion.div
+        className="relative w-full bg-[#F5F2EE] border-t border-[#1A1A1A]/10 z-10 max-h-[70vh] overflow-y-auto hide-scrollbar"
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        exit={{ y: 100 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex items-start gap-4 px-5 pt-6 pb-5">
+          {posterPath ? (
+            <img
+              src={posterUrl(posterPath, "w185")}
+              alt={title}
+              className="w-20 h-28 object-cover flex-shrink-0 shadow-sm"
+            />
+          ) : (
+            <div className="w-20 h-28 bg-[#1A1A1A]/6 flex-shrink-0" />
+          )}
+          <div className="flex-1 min-w-0 pt-1">
+            <p className="text-[9px] uppercase tracking-[0.25em] text-[#8B2635] font-medium mb-2">
+              {result.media_type === "tv" ? "Television" : "Film"}
+              {year ? ` · ${year}` : ""}
+            </p>
+            <p className="font-serif text-[26px] font-light text-[#1A1A1A] leading-tight">
+              {title}
+            </p>
+            {director && (
+              <p className="text-[11px] tracking-wide text-[#1A1A1A]/40 mt-1">
+                {director}
+              </p>
+            )}
+            {genre && (
+              <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5">
+                {genre}
+              </p>
+            )}
+            {overview && (
+              <p className="text-[13px] font-light text-[#1A1A1A]/60 mt-3 leading-relaxed line-clamp-3">
+                {overview}
+              </p>
+            )}
+            <button
+              onClick={handleAdd}
+              disabled={alreadySaved || isAdding}
+              className={`mt-4 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${
+                alreadySaved ? "text-[#1A1A1A]/25" : "text-[#1A1A1A]"
+              }`}
+            >
+              {alreadySaved ? (
+                <>
+                  <Check className="w-3 h-3" strokeWidth={2} />
+                  Saved
+                </>
+              ) : isAdding ? (
+                <Loader2 className="w-3 h-3 animate-spin" strokeWidth={2} />
+              ) : (
+                <>
+                  <Plus className="w-3 h-3" strokeWidth={2} />
+                  Add to Library
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function Movies() {
   const { items, add, remove, updateRating } = useMovies();
   const [query, setQuery] = useState("");
@@ -51,6 +164,7 @@ export default function Movies() {
   const [urlMode, setUrlMode] = useState(false);
   const [urlInput, setUrlInput] = useState("");
   const [urlError, setUrlError] = useState("");
+  const [posterPreview, setPosterPreview] = useState<PosterPreview | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
@@ -126,22 +240,34 @@ export default function Movies() {
     }
   };
 
+  // Click poster → show preview sheet without auto-adding
   const handlePosterClick = async (result: SearchResult) => {
     const alreadyAdded = addedIds.has(result.id);
-    let item: MovieItem;
     if (alreadyAdded) {
-      item = items.find((i) => i.tmdbId === result.id)!;
-    } else {
-      setLoadingId(result.id);
-      try {
-        item = await buildAndSave(result.media_type, result.id, result);
-      } finally {
-        setLoadingId(null);
-      }
+      const item = items.find((i) => i.tmdbId === result.id)!;
+      setQuery("");
+      setResults([]);
+      setSelectedItem(item);
+      return;
     }
-    setQuery("");
-    setResults([]);
-    setSelectedItem(item!);
+    setLoadingId(result.id);
+    try {
+      let detail: any;
+      let director = "";
+      if (result.media_type === "movie") {
+        detail = await getMovieDetails(result.id);
+        director =
+          detail.credits?.crew?.find((c: any) => c.job === "Director")?.name || "";
+      } else {
+        detail = await getTVDetails(result.id);
+        director = (detail.created_by || []).map((c: any) => c.name).join(", ");
+      }
+      setQuery("");
+      setResults([]);
+      setPosterPreview({ result, detail, director });
+    } finally {
+      setLoadingId(null);
+    }
   };
 
   const handleUrlAdd = async () => {
@@ -202,7 +328,7 @@ export default function Movies() {
   return (
     <div className="flex flex-col h-full bg-[#F5F2EE]">
 
-      {/* Header — no bottom border, count inline */}
+      {/* Header */}
       <div className="px-5 pt-14 pb-0">
         <div className="flex items-baseline justify-between">
           <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">
@@ -266,7 +392,6 @@ export default function Movies() {
               </button>
             ) : null}
 
-            {/* Chevron opens filter panel */}
             <button
               onClick={() => setFilterOpen((v) => !v)}
               className={`flex items-center transition-colors ${
@@ -283,12 +408,10 @@ export default function Movies() {
           </div>
         </div>
 
-        {/* URL mode error */}
         {urlMode && urlError && (
           <p className="text-[12px] text-[#8B2635] mt-2">{urlError}</p>
         )}
 
-        {/* URL mode back link */}
         {urlMode && (
           <div className="mt-2">
             <button
@@ -306,7 +429,7 @@ export default function Movies() {
         )}
       </div>
 
-      {/* Search results dropdown — scrollable */}
+      {/* Search results dropdown */}
       <AnimatePresence>
         {!urlMode && query.trim().length > 0 && (
           <motion.div
@@ -327,7 +450,7 @@ export default function Movies() {
                       <img
                         src={posterUrl(r.poster_path, "w92")}
                         alt=""
-                        className="w-8 h-[48px] object-cover flex-shrink-0 cursor-pointer"
+                        className="w-8 h-[48px] object-cover flex-shrink-0 cursor-pointer active:opacity-70 transition-opacity"
                         onClick={() => handlePosterClick(r)}
                       />
                     ) : (
@@ -380,7 +503,7 @@ export default function Movies() {
         )}
       </AnimatePresence>
 
-      {/* Filter panel (chevron-triggered, collapsible) */}
+      {/* Filter panel */}
       <AnimatePresence>
         {filterOpen && (
           <motion.div
@@ -518,6 +641,25 @@ export default function Movies() {
             onClose={() => setSelectedItem(null)}
             onDelete={remove}
             onRatingChange={(id, rating) => updateRating(id, rating)}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Search poster preview sheet — no auto-add */}
+      <AnimatePresence>
+        {posterPreview && (
+          <SearchPreviewSheet
+            preview={posterPreview}
+            alreadySaved={addedIds.has(posterPreview.result.id)}
+            onClose={() => setPosterPreview(null)}
+            onAdd={async () => {
+              await buildAndSave(
+                posterPreview.result.media_type,
+                posterPreview.result.id,
+                posterPreview.result,
+              );
+              setPosterPreview(null);
+            }}
           />
         )}
       </AnimatePresence>

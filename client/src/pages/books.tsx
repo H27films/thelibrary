@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, ChevronDown, Loader2, Plus } from "lucide-react";
+import { Search, ChevronDown, Loader2, Plus, Check } from "lucide-react";
 import { useBooks, type BookItem } from "@/hooks/use-library";
 import { searchBooks } from "@/lib/google-books";
 import { DetailView } from "@/components/detail-view";
@@ -17,6 +17,101 @@ interface GoogleBook {
   };
 }
 
+// Bottom sheet preview for a book search result — no auto-add
+function BookPreviewSheet({
+  book,
+  alreadySaved,
+  onClose,
+  onAdd,
+}: {
+  book: GoogleBook;
+  alreadySaved: boolean;
+  onClose: () => void;
+  onAdd: () => void;
+}) {
+  const info = book.volumeInfo;
+  const cover =
+    info.imageLinks?.thumbnail?.replace("http://", "https://") ||
+    info.imageLinks?.smallThumbnail?.replace("http://", "https://") ||
+    "";
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-60 flex items-end"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-[#1A1A1A]/20" />
+      <motion.div
+        className="relative w-full bg-[#F5F2EE] border-t border-[#1A1A1A]/10 z-10 max-h-[70vh] overflow-y-auto hide-scrollbar"
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        exit={{ y: 100 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="flex items-start gap-4 px-5 pt-6 pb-5">
+          {cover ? (
+            <img
+              src={cover}
+              alt={info.title}
+              className="w-16 h-[96px] object-cover flex-shrink-0 shadow-sm"
+            />
+          ) : (
+            <div className="w-16 h-[96px] bg-[#1A1A1A]/6 flex-shrink-0" />
+          )}
+          <div className="flex-1 min-w-0 pt-1">
+            <p className="text-[9px] uppercase tracking-[0.25em] text-[#8B2635] font-medium mb-2">
+              Book{info.publishedDate ? ` · ${info.publishedDate.slice(0, 4)}` : ""}
+            </p>
+            <p className="font-serif text-[26px] font-light text-[#1A1A1A] leading-tight">
+              {info.title}
+            </p>
+            {info.authors && (
+              <p className="text-[11px] tracking-wide text-[#1A1A1A]/40 mt-1">
+                {info.authors.join(", ")}
+              </p>
+            )}
+            {info.categories && (
+              <p className="text-[11px] tracking-wide text-[#1A1A1A]/25 mt-0.5">
+                {info.categories.join(", ")}
+              </p>
+            )}
+            {info.description && (
+              <p className="text-[13px] font-light text-[#1A1A1A]/60 mt-3 leading-relaxed line-clamp-3">
+                {info.description.replace(/<[^>]*>/g, "")}
+              </p>
+            )}
+            <button
+              onClick={onAdd}
+              disabled={alreadySaved}
+              className={`mt-4 flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] font-medium transition-colors ${
+                alreadySaved ? "text-[#1A1A1A]/25" : "text-[#1A1A1A]"
+              }`}
+            >
+              {alreadySaved ? (
+                <>
+                  <Check className="w-3 h-3" strokeWidth={2} />
+                  Saved
+                </>
+              ) : (
+                <>
+                  <Plus className="w-3 h-3" strokeWidth={2} />
+                  Add to Library
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
 export default function Books() {
   const { items, add, remove } = useBooks();
   const [query, setQuery] = useState("");
@@ -26,6 +121,7 @@ export default function Books() {
   const [filterOpen, setFilterOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState("");
   const [selectedItem, setSelectedItem] = useState<BookItem | null>(null);
+  const [coverPreview, setCoverPreview] = useState<GoogleBook | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
@@ -43,9 +139,7 @@ export default function Books() {
     }, 350);
   }, [query]);
 
-  const handleQuickAdd = (book: GoogleBook, e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLoadingId(book.id);
+  const buildAndAdd = (book: GoogleBook): BookItem => {
     const info = book.volumeInfo;
     const item: BookItem = {
       id: `book-${book.id}-${Date.now()}`,
@@ -59,7 +153,33 @@ export default function Books() {
       dateAdded: new Date().toISOString(),
     };
     add(item);
+    return item;
+  };
+
+  const handleQuickAdd = (book: GoogleBook, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (addedIds.has(book.id)) return;
+    setLoadingId(book.id);
+    buildAndAdd(book);
     setLoadingId(null);
+  };
+
+  // Click cover → show preview sheet without auto-adding
+  const handleCoverClick = (book: GoogleBook, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (addedIds.has(book.id)) {
+      // Already saved — open detail view directly
+      const saved = items.find((i) => i.googleBooksId === book.id);
+      if (saved) {
+        setQuery("");
+        setResults([]);
+        setSelectedItem(saved);
+      }
+      return;
+    }
+    setQuery("");
+    setResults([]);
+    setCoverPreview(book);
   };
 
   const allAuthors = Array.from(
@@ -84,7 +204,7 @@ export default function Books() {
       <div className="px-5 pt-14 pb-0">
         <div className="flex items-baseline justify-between">
           <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">Books</h1>
-          <span className="text-[11px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 font-medium">{items.length}</span>
+          <span className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">{items.length}</span>
         </div>
       </div>
 
@@ -120,7 +240,7 @@ export default function Books() {
         </div>
       </div>
 
-      {/* Search results dropdown — scrollable */}
+      {/* Search results dropdown */}
       <AnimatePresence>
         {query.trim().length > 0 && (
           <motion.div
@@ -141,7 +261,8 @@ export default function Books() {
                       <img
                         src={r.volumeInfo.imageLinks.smallThumbnail.replace("http://", "https://")}
                         alt=""
-                        className="w-8 h-[48px] object-cover flex-shrink-0"
+                        className="w-8 h-[48px] object-cover flex-shrink-0 cursor-pointer active:opacity-70 transition-opacity"
+                        onClick={(e) => handleCoverClick(r, e)}
                       />
                     ) : (
                       <div className="w-8 h-[48px] bg-[#1A1A1A]/6 flex-shrink-0" />
@@ -153,7 +274,7 @@ export default function Books() {
                       <p className="text-[10px] text-[#1A1A1A]/35 mt-0.5 tracking-wide truncate">
                         {(r.volumeInfo.authors || []).join(", ")}
                         {r.volumeInfo.publishedDate && (
-                          <>{"  ·  "}{r.volumeInfo.publishedDate.slice(0, 4)}</>
+                          <>{" · "}{r.volumeInfo.publishedDate.slice(0, 4)}</>
                         )}
                       </p>
                     </div>
@@ -168,7 +289,7 @@ export default function Books() {
                       ) : alreadyAdded ? (
                         <span className="text-[9px] text-[#1A1A1A]/25">✓</span>
                       ) : (
-                        <Plus className="w-3.5 h-3.5 text-[#1A1A1A]/40 hover:text-[#1A1A1A]" strokeWidth={1.5} />
+                        <Plus className="w-3.5 h-3.5 text-[#1A1A1A]" strokeWidth={1.5} />
                       )}
                     </button>
                   </div>
@@ -201,7 +322,6 @@ export default function Books() {
                 />
               </div>
 
-              {/* Genre suggestions */}
               {filterQuery.length === 0 && allGenres.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2.5">
                   {allGenres.slice(0, 8).map((genre) => (
@@ -261,6 +381,23 @@ export default function Books() {
       <AnimatePresence>
         {selectedItem && (
           <DetailView item={selectedItem} type="book" onClose={() => setSelectedItem(null)} onDelete={remove} />
+        )}
+      </AnimatePresence>
+
+      {/* Book cover preview sheet — no auto-add */}
+      <AnimatePresence>
+        {coverPreview && (
+          <BookPreviewSheet
+            book={coverPreview}
+            alreadySaved={addedIds.has(coverPreview.id)}
+            onClose={() => setCoverPreview(null)}
+            onAdd={() => {
+              if (!addedIds.has(coverPreview.id)) {
+                buildAndAdd(coverPreview);
+              }
+              setCoverPreview(null);
+            }}
+          />
         )}
       </AnimatePresence>
     </div>

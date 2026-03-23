@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Trash2, Loader2, Check, Plus } from "lucide-react";
 import type { MovieItem, BookItem, PersonItem } from "@/hooks/use-library";
-import { usePeople, useMovies } from "@/hooks/use-library";
+import { usePeople, useMovies, useBooks } from "@/hooks/use-library";
 import { searchPeople, profileUrl } from "@/lib/tmdb";
 
 type Item = MovieItem | BookItem | PersonItem;
@@ -358,6 +358,158 @@ function DirectorFilms({
   );
 }
 
+// Bottom sheet: books by a given author (fetched from Google Books)
+function AuthorBooksSheet({
+  author,
+  onClose,
+}: {
+  author: string;
+  onClose: () => void;
+}) {
+  const { items, add } = useBooks();
+  const [books, setBooks] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [addingId, setAddingId] = useState<string | null>(null);
+
+  const savedIds = new Set(items.map((b) => b.googleBooksId));
+
+  useEffect(() => {
+    async function loadBooks() {
+      try {
+        const res = await fetch(
+          `https://www.googleapis.com/books/v1/volumes?q=inauthor:"${encodeURIComponent(author)}"&maxResults=15`,
+        );
+        const data = await res.json();
+        setBooks(data.items || []);
+      } catch {
+        setBooks([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+    if (author) loadBooks();
+  }, [author]);
+
+  const handleAdd = (book: any) => {
+    if (savedIds.has(book.id) || addingId === book.id) return;
+    setAddingId(book.id);
+    const info = book.volumeInfo;
+    add({
+      id: `book-${book.id}-${Date.now()}`,
+      title: info.title,
+      author: (info.authors || []).join(", "),
+      year: (info.publishedDate || "").slice(0, 4),
+      genre: (info.categories || []).join(", "),
+      coverUrl:
+        info.imageLinks?.thumbnail?.replace("http://", "https://") || "",
+      description: info.description || "",
+      googleBooksId: book.id,
+      dateAdded: new Date().toISOString(),
+    } as BookItem);
+    setTimeout(() => setAddingId(null), 600);
+  };
+
+  return (
+    <motion.div
+      className="fixed inset-0 z-60 flex items-end"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-[#1A1A1A]/20" />
+      <motion.div
+        className="relative w-full bg-[#F5F2EE] border-t border-[#1A1A1A]/10 z-10 max-h-[72vh] overflow-y-auto hide-scrollbar"
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        exit={{ y: 100 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+      >
+        <div className="px-5 pt-6 pb-4 border-b border-[#1A1A1A]/8">
+          <p className="text-[9px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 font-medium mb-1">
+            Books by
+          </p>
+          <p className="font-serif text-[24px] font-light text-[#1A1A1A] leading-tight">
+            {author}
+          </p>
+        </div>
+
+        {loading ? (
+          <div className="px-5 py-6">
+            <Loader2
+              className="w-4 h-4 animate-spin text-[#1A1A1A]/25"
+              strokeWidth={1.5}
+            />
+          </div>
+        ) : books.length === 0 ? (
+          <p className="px-5 py-6 text-[13px] text-[#1A1A1A]/30 font-light">
+            No results found.
+          </p>
+        ) : (
+          <div>
+            {books.map((book) => {
+              const info = book.volumeInfo;
+              const alreadyAdded = savedIds.has(book.id);
+              return (
+                <div
+                  key={book.id}
+                  className="flex items-center gap-3 px-5 py-3 border-b border-[#1A1A1A]/7"
+                >
+                  {info.imageLinks?.smallThumbnail ? (
+                    <img
+                      src={info.imageLinks.smallThumbnail.replace(
+                        "http://",
+                        "https://",
+                      )}
+                      alt=""
+                      className="w-8 h-[48px] object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-8 h-[48px] bg-[#1A1A1A]/6 flex-shrink-0" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-serif text-[17px] font-light text-[#1A1A1A] leading-tight truncate">
+                      {info.title}
+                    </p>
+                    <p className="text-[10px] text-[#1A1A1A]/35 mt-0.5 tracking-wide">
+                      {(info.publishedDate || "").slice(0, 4)}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleAdd(book)}
+                    disabled={alreadyAdded || addingId === book.id}
+                    className="flex-shrink-0 w-7 h-7 flex items-center justify-center"
+                  >
+                    {addingId === book.id ? (
+                      <Loader2
+                        className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/25"
+                        strokeWidth={1.5}
+                      />
+                    ) : alreadyAdded ? (
+                      <Check
+                        className="w-3.5 h-3.5 text-[#1A1A1A]/25"
+                        strokeWidth={2}
+                      />
+                    ) : (
+                      <Plus
+                        className="w-3.5 h-3.5 text-[#1A1A1A]"
+                        strokeWidth={1.5}
+                      />
+                    )}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </motion.div>
+    </motion.div>
+  );
+}
+
 // Full-screen person profile view (no auto-add)
 function PersonProfileView({
   person,
@@ -394,13 +546,18 @@ function PersonProfileView({
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
     >
       {/* Toolbar */}
-      <div className="relative flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
-        <button
-          onClick={onClose}
-          className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 font-medium"
-        >
-          ← Back
-        </button>
+      <div className="px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
+        <p className="text-[10px] uppercase tracking-[0.25em] text-[#1A1A1A] font-medium mb-5">
+          People
+        </p>
+        <div className="flex items-center justify-between">
+          <button
+            onClick={onClose}
+            className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 font-medium"
+          >
+            ← Back
+          </button>
+        </div>
       </div>
 
       <div className="flex-1 overflow-y-auto hide-scrollbar">
@@ -583,6 +740,7 @@ export function DetailView({
   const [loadingPerson, setLoadingPerson] = useState<string | null>(null);
   const [directorTmdbId, setDirectorTmdbId] = useState<number | null>(null);
   const [profilePerson, setProfilePerson] = useState<PersonPreview | null>(null);
+  const [authorSheet, setAuthorSheet] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchDirectorId() {
@@ -664,34 +822,33 @@ export function DetailView({
           exit={{ opacity: 0, y: 24 }}
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
         >
-          {/* Toolbar */}
-          <div className="relative flex items-center justify-between px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
-            <button
-              onClick={onClose}
-              className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 font-medium"
-            >
-              ← Back
-            </button>
-
-            {/* Section label — centred, serif, matches THE LIBRARY style */}
-            <span className="absolute left-1/2 -translate-x-1/2 font-serif text-[11px] font-light tracking-[0.25em] text-[#1A1A1A]/40 uppercase pointer-events-none select-none">
+          {/* Toolbar — section label top-left matching THE LIBRARY style */}
+          <div className="px-5 pt-14 pb-4 border-b border-[#1A1A1A]/8">
+            <p className="text-[10px] uppercase tracking-[0.25em] text-[#1A1A1A] font-medium mb-5">
               {sectionLabel(type)}
-            </span>
-
-            <div className="flex items-center gap-3">
-              {loadingPerson && (
-                <Loader2
-                  className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/30"
-                  strokeWidth={1.5}
-                />
-              )}
+            </p>
+            <div className="flex items-center justify-between">
               <button
-                onClick={handleDelete}
-                className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#8B2635] font-medium"
+                onClick={onClose}
+                className="text-[10px] uppercase tracking-[0.2em] text-[#1A1A1A]/40 font-medium"
               >
-                <Trash2 className="w-3 h-3" strokeWidth={2} />
-                Remove
+                ← Back
               </button>
+              <div className="flex items-center gap-3">
+                {loadingPerson && (
+                  <Loader2
+                    className="w-3.5 h-3.5 animate-spin text-[#1A1A1A]/30"
+                    strokeWidth={1.5}
+                  />
+                )}
+                <button
+                  onClick={handleDelete}
+                  className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-[#8B2635] font-medium"
+                >
+                  <Trash2 className="w-3 h-3" strokeWidth={2} />
+                  Remove
+                </button>
+              </div>
             </div>
           </div>
 
@@ -789,7 +946,20 @@ export function DetailView({
                   </h1>
                 </div>
                 <div className="px-5 mt-4">
-                  <MetaRow label="Author" value={item.author} />
+                  {/* Author — clickable, opens sheet with more books by author */}
+                  {item.author && (
+                    <div className="py-4 border-b border-[#1A1A1A]/7">
+                      <p className="text-[9px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 mb-2.5 font-medium">
+                        Author
+                      </p>
+                      <button
+                        onClick={() => setAuthorSheet(item.author)}
+                        className="text-[15px] font-light text-[#1A1A1A] underline underline-offset-2 decoration-[#1A1A1A]/20 active:opacity-50"
+                      >
+                        {item.author}
+                      </button>
+                    </div>
+                  )}
                   <MetaRow label="Genre" value={(item as any).genre || ""} />
                   <MetaRow
                     label="Description"
@@ -860,6 +1030,15 @@ export function DetailView({
               <PersonProfileView
                 person={profilePerson}
                 onClose={() => setProfilePerson(null)}
+              />
+            )}
+          </AnimatePresence>
+
+          <AnimatePresence>
+            {authorSheet && (
+              <AuthorBooksSheet
+                author={authorSheet}
+                onClose={() => setAuthorSheet(null)}
               />
             )}
           </AnimatePresence>
