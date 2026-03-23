@@ -76,7 +76,7 @@ export default function Movies() {
     mediaType: "movie" | "tv",
     id: number,
     overrides?: Partial<SearchResult>,
-  ) => {
+  ): Promise<MovieItem> => {
     let detail: any;
     let director = "";
     let cast: string[] = [];
@@ -113,6 +113,7 @@ export default function Movies() {
       dateAdded: new Date().toISOString(),
     };
     add(item);
+    return item;
   };
 
   const handleQuickAdd = async (result: SearchResult, e: React.MouseEvent) => {
@@ -123,6 +124,24 @@ export default function Movies() {
     } finally {
       setLoadingId(null);
     }
+  };
+
+  const handlePosterClick = async (result: SearchResult) => {
+    const alreadyAdded = addedIds.has(result.id);
+    let item: MovieItem;
+    if (alreadyAdded) {
+      item = items.find((i) => i.tmdbId === result.id)!;
+    } else {
+      setLoadingId(result.id);
+      try {
+        item = await buildAndSave(result.media_type, result.id, result);
+      } finally {
+        setLoadingId(null);
+      }
+    }
+    setQuery("");
+    setResults([]);
+    setSelectedItem(item!);
   };
 
   const handleUrlAdd = async () => {
@@ -189,7 +208,7 @@ export default function Movies() {
           <h1 className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">
             Films & TV
           </h1>
-          <span className="text-[11px] uppercase tracking-[0.25em] text-[#1A1A1A]/35 font-medium">
+          <span className="font-serif text-[42px] font-light text-[#1A1A1A] leading-none tracking-tight">
             {items.length}
           </span>
         </div>
@@ -308,7 +327,8 @@ export default function Movies() {
                       <img
                         src={posterUrl(r.poster_path, "w92")}
                         alt=""
-                        className="w-8 h-[48px] object-cover flex-shrink-0"
+                        className="w-8 h-[48px] object-cover flex-shrink-0 cursor-pointer"
+                        onClick={() => handlePosterClick(r)}
                       />
                     ) : (
                       <div className="w-8 h-[48px] bg-[#1A1A1A]/6 flex-shrink-0" />
@@ -335,7 +355,7 @@ export default function Movies() {
                       ) : alreadyAdded ? (
                         <span className="text-[9px] text-[#1A1A1A]/25">✓</span>
                       ) : (
-                        <Plus className="w-3.5 h-3.5 text-[#1A1A1A]/40 hover:text-[#1A1A1A]" strokeWidth={1.5} />
+                        <Plus className="w-3.5 h-3.5 text-[#1A1A1A]" strokeWidth={1.5} />
                       )}
                     </button>
                   </div>
